@@ -1,5 +1,5 @@
-mod chunk_read;
-pub use chunk_read::ChunkRead;
+mod traits;
+pub use traits::{ChunkAccess, ChunkRead, TryChunkAccess};
 
 mod index_set;
 pub use index_set::{IndexDrain, IndexSet};
@@ -10,8 +10,8 @@ use combinators::{BinChunkOp, CombinedChunks, NotChunks};
 pub mod iterators;
 use iterators::{ChunkIter, IndexIter};
 
-#[cfg(test)]
-mod tests;
+// #[cfg(test)]
+// mod tests;
 
 /////////////////////////////////////////////
 

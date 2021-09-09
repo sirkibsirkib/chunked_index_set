@@ -10,6 +10,10 @@ pub struct Xor;
 pub struct And;
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Diff;
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub struct Fst;
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub struct Snd;
 
 //////////
 
@@ -53,5 +57,15 @@ impl BinChunkOp for Diff {
         } else {
             None
         }
+    }
+}
+impl BinChunkOp for Fst {
+    fn combine_chunks(self, a: Option<Chunk>, _: Option<Chunk>) -> Option<Chunk> {
+        a
+    }
+}
+impl BinChunkOp for Snd {
+    fn combine_chunks(self, _: Option<Chunk>, b: Option<Chunk>) -> Option<Chunk> {
+        b
     }
 }

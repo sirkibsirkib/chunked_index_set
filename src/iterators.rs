@@ -1,24 +1,24 @@
 use super::*;
 
 #[derive(Debug, Copy, Clone)]
-pub struct ChunkIter<A: ChunkRead> {
-    a: A,
+pub struct ChunkIter<'a, A: ChunkRead + ?Sized> {
+    a: &'a A,
     idx_of_next_chunk: usize,
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct IndexIter<A: ChunkRead> {
-    pub(crate) wi: ChunkIter<A>,
+pub struct IndexIter<'a, A: ChunkRead + ?Sized> {
+    pub(crate) wi: ChunkIter<'a, A>,
     pub(crate) cached: usize,
 }
 
-impl<A: ChunkRead> ChunkIter<A> {
-    pub fn new(a: A) -> Self {
+impl<'a, A: ChunkRead> ChunkIter<'a, A> {
+    pub fn new(a: &'a A) -> Self {
         Self { a, idx_of_next_chunk: 0 }
     }
 }
 
-impl<A: ChunkRead> Iterator for ChunkIter<A> {
+impl<A: ChunkRead> Iterator for ChunkIter<'_, A> {
     type Item = usize;
     fn next(&mut self) -> Option<usize> {
         let next = self.a.get_chunk(self.idx_of_next_chunk)?;
@@ -27,12 +27,12 @@ impl<A: ChunkRead> Iterator for ChunkIter<A> {
     }
 }
 
-impl<A: ChunkRead> IndexIter<A> {
-    pub fn new(a: A) -> Self {
+impl<'a, A: ChunkRead> IndexIter<'a, A> {
+    pub fn new(a: &'a A) -> Self {
         Self { wi: a.iter_chunks(), cached: 0 }
     }
 }
-impl<A: ChunkRead> Iterator for IndexIter<A> {
+impl<A: ChunkRead> Iterator for IndexIter<'_, A> {
     type Item = usize;
     fn next(&mut self) -> Option<usize> {
         while self.cached == 0 {

@@ -4,6 +4,7 @@ use core::iter::FromIterator;
 #[derive(Default, Debug, Clone, Eq, PartialEq)]
 pub struct IndexSet {
     // invariant: last chunk is non-zero
+    // derived Eq and PartialEq rely on this invariant
     pub(crate) chunks: Vec<Chunk>,
 }
 
@@ -13,17 +14,8 @@ pub struct IndexDrain<'a> {
 
 ////////////
 
-impl Drop for IndexDrain<'_> {
-    fn drop(&mut self) {
-        self.w.clear()
-    }
-}
-impl ChunkRead for &IndexDrain<'_> {
-    fn get_chunk(self, idx_of_chunk: usize) -> Option<usize> {
-        self.w.get_chunk(idx_of_chunk)
-    }
-}
 impl IndexSet {
+    /// restores invariant
     fn pop_zero_tail(&mut self) {
         while let Some(0) = self.chunks.last() {
             self.chunks.pop();
@@ -54,7 +46,10 @@ impl IndexSet {
         for i in 0.. {
             match (self.chunks.get_mut(i), a.get_chunk(i)) {
                 (Some(dest), Some(src)) => *dest &= !src,
-                _ => return,
+                _ => {
+                    self.pop_zero_tail();
+                    return;
+                }
             }
         }
     }
@@ -107,9 +102,19 @@ impl IndexSet {
                 false
             }
         } else {
-            // can't remove. bit out of bounds
+            // can't remove. absent chunk already encodes zero bit
             false
         }
+    }
+}
+impl Drop for IndexDrain<'_> {
+    fn drop(&mut self) {
+        self.w.clear()
+    }
+}
+impl ChunkRead for &IndexDrain<'_> {
+    fn get_chunk(self, idx_of_chunk: usize) -> Option<usize> {
+        self.w.get_chunk(idx_of_chunk)
     }
 }
 impl FromIterator<Index> for IndexSet {
@@ -124,6 +129,13 @@ impl FromIterator<Index> for IndexSet {
 
 impl ChunkRead for &IndexSet {
     fn get_chunk(self, idx_of_chunk: usize) -> Option<usize> {
-        self.chunks.get(idx_of_chunk).copied()
+        self.chunks.get_chunk(idx_of_chunk)
+    }
+}
+
+impl ChunkRead for &[Chunk] {
+    /// ChunkRead does not rely on IndexSet's non-zero-last-word invariant. Exposing this to the user is OK
+    fn get_chunk(self, idx_of_chunk: usize) -> Option<usize> {
+        self.get(idx_of_chunk).copied()
     }
 }

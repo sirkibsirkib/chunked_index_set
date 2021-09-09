@@ -1,55 +1,88 @@
-use super::WordLookup;
+use super::{Chunk, ChunkRead};
 
 #[derive(Debug, Copy, Clone)]
-pub struct NotWords<A: WordLookup> {
+pub struct NotChunks<A: ChunkRead> {
     pub a: A,
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
-pub enum BinWordOperator {
-    Nand,       // either a or b
-    Or,         // either a or b
-    Xor,        // either a or b
-    And,        // both
-    Difference, // first not latter
+pub trait BinChunkOp: Copy {
+    /// NONE means zero chunk AND all subsequent chunks are zero
+    fn combine_chunks(self, a: Option<Chunk>, b: Option<Chunk>) -> Option<Chunk>;
+}
+
+pub mod bin_ops {
+    use crate::{BinChunkOp, Chunk};
+
+    #[inline]
+    fn z(chunk: Option<Chunk>) -> Chunk {
+        chunk.unwrap_or(0)
+    }
+
+    #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+    pub struct Nand;
+    #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+    pub struct Or;
+    #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+    pub struct Xor;
+    #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+    pub struct And;
+    #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+    pub struct Diff;
+
+    impl BinChunkOp for Nand {
+        fn combine_chunks(self, a: Option<Chunk>, b: Option<Chunk>) -> Option<Chunk> {
+            Some(!(z(a) & z(b)))
+        }
+    }
+    impl BinChunkOp for Or {
+        fn combine_chunks(self, a: Option<Chunk>, b: Option<Chunk>) -> Option<Chunk> {
+            if a.is_none() && b.is_none() {
+                None
+            } else {
+                Some(z(a) | z(b))
+            }
+        }
+    }
+    impl BinChunkOp for Xor {
+        fn combine_chunks(self, a: Option<Chunk>, b: Option<Chunk>) -> Option<Chunk> {
+            Some(z(a) ^ z(b))
+        }
+    }
+    impl BinChunkOp for And {
+        fn combine_chunks(self, a: Option<Chunk>, b: Option<Chunk>) -> Option<Chunk> {
+            if let [Some(a), Some(b)] = [a, b] {
+                Some(a & b)
+            } else {
+                None
+            }
+        }
+    }
+    impl BinChunkOp for Diff {
+        fn combine_chunks(self, a: Option<Chunk>, b: Option<Chunk>) -> Option<Chunk> {
+            if let Some(a) = a {
+                Some(a & !(z(b)))
+            } else {
+                None
+            }
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct CombinedWords<A: WordLookup, B: WordLookup> {
+pub struct CombinedChunks<A: ChunkRead, B: ChunkRead, O: BinChunkOp> {
     pub a: A,
     pub b: B,
-    pub op: BinWordOperator,
+    pub op: O,
 }
 
-///////////////////////////
-impl BinWordOperator {
-    #[inline]
-    pub fn word_op_fn(self) -> fn(usize, usize) -> usize {
-        use BinWordOperator::*;
-        match self {
-            Nand => |a, b| !(a & b),
-            And => core::ops::BitAnd::bitand,
-            Or => core::ops::BitOr::bitor,
-            Xor => core::ops::BitXor::bitxor,
-            Difference => |a, b| a & !b,
-        }
+impl<A: ChunkRead> ChunkRead for NotChunks<A> {
+    fn get_chunk(self, idx_of_chunk: usize) -> Option<Chunk> {
+        Some(!self.a.get_chunk(idx_of_chunk).unwrap_or(0))
     }
 }
 
-impl<A: WordLookup> WordLookup for NotWords<A> {
-    fn get_word(self, idx_of_word: usize) -> Option<usize> {
-        Some(!self.a.get_word(idx_of_word).unwrap_or(0))
-    }
-}
-
-impl<A: WordLookup, B: WordLookup> WordLookup for &CombinedWords<A, B> {
-    fn get_word(self, idx_of_word: usize) -> Option<usize> {
-        let wa = self.a.get_word(idx_of_word);
-        let wb = self.b.get_word(idx_of_word);
-        use BinWordOperator::*;
-        if let (None, None, _) | (_, None, And) | (None, _, And | Difference) = (wa, wb, self.op) {
-            return None;
-        }
-        Some((self.op.word_op_fn())(wa.unwrap_or(0), wb.unwrap_or(0)))
+impl<A: ChunkRead, B: ChunkRead, O: BinChunkOp> ChunkRead for &CombinedChunks<A, B, O> {
+    fn get_chunk(self, idx_of_chunk: usize) -> Option<Chunk> {
+        self.op.combine_chunks(self.a.get_chunk(idx_of_chunk), self.b.get_chunk(idx_of_chunk))
     }
 }

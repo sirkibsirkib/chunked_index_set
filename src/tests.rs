@@ -1,6 +1,6 @@
 use crate::*;
 use core::ops::Range;
-use fastrand::Rng;
+
 use std::collections::HashSet;
 use std::iter::FromIterator;
 
@@ -8,49 +8,69 @@ type HSet = HashSet<usize>;
 
 // fn random_elements()
 
-fn usize_stream(seed: u64, bounds: Range<usize>) -> impl Iterator<Item = usize> {
+fn stream(seed: u64, bounds: Range<usize>) -> impl Iterator<Item = usize> {
     let rng = fastrand::Rng::with_seed(seed);
     std::iter::repeat_with(move || rng.usize(bounds.clone()))
 }
 
-fn paramd_usize_stream() -> impl Iterator<Item = usize> {
-    usize_stream(SEED, BOUNDS.clone()).take(COUNT)
+fn seeded_stream(seed: u64) -> impl Iterator<Item = usize> {
+    stream(seed, 0..900).take(500)
 }
-
-// fn build_and_drain()
-const BOUNDS: Range<usize> = 0..600;
-const COUNT: usize = 900;
-const SEED: u64 = 3;
 
 #[test]
 fn collect_count_and_iter_count() {
-    let w = Words::from_set_bits(paramd_usize_stream());
-    assert_eq!(w.count_set_bits(), w.iter_set_bits().count())
+    let w = IndexSet::from_iter(seeded_stream(0));
+    assert_eq!(w.count_indexes(), w.iter_indexes().count())
 }
 
 #[test]
-fn words_hset_collect_count_eq() {
-    let w = Words::from_set_bits(paramd_usize_stream());
-    let h = HSet::from_iter(paramd_usize_stream());
-    assert_eq!(w.count_set_bits(), h.len());
+fn chunks_hset_collect_count_eq() {
+    let w = IndexSet::from_iter(seeded_stream(0));
+    let h = HSet::from_iter(seeded_stream(0));
+    assert_eq!(w.count_indexes(), h.len());
 }
 
 #[test]
-fn words_covers_hset() {
-    let mut w = Words::from_set_bits(paramd_usize_stream());
-    let mut h = HSet::from_iter(paramd_usize_stream());
-    for i in w.drain().iter_set_bits() {
+fn chunks_covers_hset() {
+    let mut w = IndexSet::from_iter(seeded_stream(0));
+    let mut h = HSet::from_iter(seeded_stream(0));
+    for i in w.drain().iter_indexes() {
         assert!(h.remove(&i));
     }
     assert!(w.is_empty() && h.is_empty());
 }
 
 #[test]
-fn hset_covers_words() {
-    let mut w = Words::from_set_bits(paramd_usize_stream());
-    let mut h = HSet::from_iter(paramd_usize_stream());
+fn hset_covers_chunks() {
+    let mut w = IndexSet::from_iter(seeded_stream(0));
+    let mut h = HSet::from_iter(seeded_stream(0));
     for i in h.drain() {
         assert!(w.remove_bit(i));
     }
     assert!(w.is_empty() && h.is_empty());
+}
+
+#[test]
+fn iter_and_collect_indices() {
+    let a = IndexSet::from_iter(seeded_stream(0));
+    let b = IndexSet::from_iter(a.iter_indexes());
+    assert_eq!(a, b)
+}
+
+#[test]
+fn iter_and_collect_chunks() {
+    let a = IndexSet::from_iter(seeded_stream(0));
+    let b = IndexSet::from_chunks(a.iter_chunks().collect());
+    assert_eq!(a, b)
+}
+
+#[test]
+fn and_intersects() {
+    let a = IndexSet::from_iter(seeded_stream(0));
+    let b = IndexSet::from_iter(seeded_stream(1));
+
+    let a_and_b = a.and(&b).to_index_set();
+    for i in a_and_b.iter_indexes() {
+        assert!(a.contains_index(i) && b.contains_index(i))
+    }
 }

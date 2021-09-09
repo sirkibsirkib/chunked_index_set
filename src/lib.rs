@@ -1,38 +1,41 @@
-mod word_lookup;
-pub use word_lookup::WordLookup;
+mod chunk_read;
+pub use chunk_read::ChunkRead;
 
-mod words;
-pub use words::{WordDrain, Words};
+mod index_set;
+pub use index_set::{IndexDrain, IndexSet};
 
 pub mod combinators;
-use combinators::{BinWordOperator, CombinedWords, NotWords};
+use combinators::{BinChunkOp, CombinedChunks, NotChunks};
 
 pub mod iterators;
-use iterators::{SetBitIdxIter, WordIter};
+use iterators::{ChunkIter, IndexIter};
 
 #[cfg(test)]
 mod tests;
 
 /////////////////////////////////////////////
 
+pub type Chunk = usize; // stores up to usize::BITS Indexes
+pub type Index = usize; // BIT index
+
 #[derive(Debug, Copy, Clone)]
-struct WordBitAddr {
-    idx_of_word: usize,
-    idx_in_word: u32, // invariant: in 0..usize::BITs
+struct ChunkBitAddr {
+    idx_of_chunk: usize, // CHUNK index not BIT index
+    idx_in_chunk: u32,   // invariant: in 0..usize::BITs
 }
 ///////////////////////////////////////////////////////////////////////
 
-impl WordBitAddr {
+impl ChunkBitAddr {
     fn from_bit_idx(bit_idx: usize) -> Self {
         Self {
-            idx_of_word: bit_idx / usize::BITS as usize,
-            idx_in_word: (bit_idx % usize::BITS as usize) as u32,
+            idx_of_chunk: bit_idx / usize::BITS as usize,
+            idx_in_chunk: (bit_idx % usize::BITS as usize) as u32,
         }
     }
-    const fn word_mask(&self) -> usize {
-        1 << self.idx_in_word
+    const fn chunk_mask(&self) -> usize {
+        1 << self.idx_in_chunk
     }
     fn to_bit_idx(self) -> usize {
-        self.idx_of_word * usize::BITS as usize + self.idx_in_word as usize
+        self.idx_of_chunk * usize::BITS as usize + self.idx_in_chunk as usize
     }
 }

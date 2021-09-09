@@ -2,27 +2,6 @@ use super::*;
 
 use crate::combinators::bin_ops::*;
 
-// pub fn overwrite_combined<'a, A,B,O>(
-//         &'a mut A,
-//         b: B,
-//         op: O,
-//     )
-//     where &'a A: ChunkRead, A: TryChunkAccess, b: ChunkRead, O: BinChunkOp
-// {
-//         for idx_of_chunk in 0.. {
-//             let ca = a.get_chunk(idx_of_chunk);
-//             let src: Option<Chunk> = op.combine_chunks(ca, b.get_chunk(idx_of_chunk));
-//             if let Some(src) = src {
-//                 if let Some(dest) = a.try_get_mut_chunk_creating(idx_of_chunk) {
-//                     *dest = src;
-//                 }
-//             } else {
-//                 a.truncate(idx_of_chunk);
-//                 return;
-//             }
-//         }
-//     }
-
 pub trait ChunkAccess: TryChunkAccess {
     fn get_mut_chunk_creating(&mut self, idx_of_chunk: usize) -> &mut Chunk {
         self.try_get_mut_chunk_creating(idx_of_chunk).unwrap()
@@ -31,7 +10,7 @@ pub trait ChunkAccess: TryChunkAccess {
         self.try_insert_index(bit_idx).unwrap()
     }
 }
-pub trait TryChunkAccess {
+pub trait TryChunkAccess: ChunkRead {
     fn try_get_mut_chunk_creating(&mut self, idx_of_chunk: usize) -> Option<&mut Chunk>;
     ////////
     fn try_clone_from<A: ChunkRead>(&mut self, a: A) {
@@ -91,6 +70,20 @@ pub trait TryChunkAccess {
     }
     fn clear(&mut self) {
         self.truncate(0)
+    }
+    fn overwrite_combined<B: ChunkRead, O: BinChunkOp>(&mut self, op: O, b: &B) {
+        for idx_of_chunk in 0.. {
+            let src: Option<Chunk> =
+                op.combine_chunks(self.get_chunk(idx_of_chunk), b.get_chunk(idx_of_chunk));
+            if let Some(src) = src {
+                if let Some(dest) = self.try_get_mut_chunk_creating(idx_of_chunk) {
+                    *dest = src;
+                }
+            } else {
+                self.truncate(idx_of_chunk);
+                return;
+            }
+        }
     }
     fn remove_all<A: ChunkRead>(&mut self, a: A) {
         for idx_of_chunk in 0.. {
@@ -154,7 +147,9 @@ pub trait ChunkRead {
     fn to_index_set(&self) -> IndexSet {
         IndexSet::from_chunks(self.iter_chunks().collect())
     }
-
+    fn displayable(&self) -> DisplayableIndexSet<Self> {
+        DisplayableIndexSet(self)
+    }
     fn iter_indexes(&self) -> IndexIter<Self> {
         IndexIter::new(self)
     }
@@ -177,28 +172,33 @@ pub trait ChunkRead {
         }
     }
     fn not_chunks(&self) -> NotChunks<Self> {
-        NotChunks { a: self }
+        NotChunks(self)
     }
     fn combine_chunks<'a, B: ChunkRead, O: BinChunkOp>(
         &'a self,
-        b: &'a B,
         op: O,
+        b: &'a B,
     ) -> CombinedChunks<Self, B, O> {
         CombinedChunks { a: self, b, op }
     }
     fn nand<'a, B: ChunkRead>(&'a self, b: &'a B) -> CombinedChunks<Self, B, Nand> {
-        self.combine_chunks(b, Nand)
+        self.combine_chunks(Nand, b)
     }
     fn or<'a, B: ChunkRead>(&'a self, b: &'a B) -> CombinedChunks<Self, B, Or> {
-        self.combine_chunks(b, Or)
+        self.combine_chunks(Or, b)
     }
     fn xor<'a, B: ChunkRead>(&'a self, b: &'a B) -> CombinedChunks<Self, B, Xor> {
-        self.combine_chunks(b, Xor)
+        self.combine_chunks(Xor, b)
     }
     fn and<'a, B: ChunkRead>(&'a self, b: &'a B) -> CombinedChunks<Self, B, And> {
-        self.combine_chunks(b, And)
+        self.combine_chunks(And, b)
     }
     fn diff<'a, B: ChunkRead>(&'a self, b: &'a B) -> CombinedChunks<Self, B, Diff> {
-        self.combine_chunks(b, Diff)
+        self.combine_chunks(Diff, b)
     }
 }
+// impl<T: ChunkRead> ChunkRead for &T {
+//     fn get_chunk(&self, idx_of_chunk: usize) -> Option<Chunk> {
+//         <T as ChunkRead>::get_chunk(*self, idx_of_chunk)
+//     }
+// }

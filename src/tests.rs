@@ -1,4 +1,3 @@
-use crate::combinators::bin_ops::Xor;
 use crate::*;
 use core::ops::Range;
 
@@ -86,13 +85,4 @@ fn stack_chunk() {
     let mut chunk: usize = Default::default();
     chunk.try_insert_index(7).unwrap();
     assert!(chunk.contains_index(7));
-}
-
-#[test]
-fn or_chunk() {
-    let mut a = usize::try_from_indexes([1, 2, 3]);
-    let b = usize::try_from_indexes([3, 4, 5]);
-
-    a.overwrite_combined(&b, Xor, |me| me as &usize);
-    println!("{:?}", a);
 }

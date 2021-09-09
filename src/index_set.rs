@@ -108,7 +108,7 @@ impl Drop for IndexDrain<'_> {
         self.w.clear()
     }
 }
-impl ChunkRead for &IndexDrain<'_> {
+impl ChunkRead for IndexDrain<'_> {
     fn get_chunk(&self, idx_of_chunk: usize) -> Option<usize> {
         self.w.get_chunk(idx_of_chunk)
     }
@@ -129,20 +129,10 @@ impl ChunkRead for IndexSet {
     }
 }
 
-impl ChunkRead for &[Chunk] {
+impl ChunkRead for [Chunk] {
     /// ChunkRead does not rely on IndexSet's non-zero-last-word invariant. Exposing this to the user is OK
     fn get_chunk(&self, idx_of_chunk: usize) -> Option<usize> {
         self.get(idx_of_chunk).copied()
-    }
-}
-impl ChunkRead for Chunk {
-    /// ChunkRead does not rely on IndexSet's non-zero-last-word invariant. Exposing this to the user is OK
-    fn get_chunk(&self, idx_of_chunk: usize) -> Option<usize> {
-        if idx_of_chunk == 0 {
-            Some(*self)
-        } else {
-            None
-        }
     }
 }
 impl TryChunkAccess for IndexSet {
@@ -167,7 +157,17 @@ impl TryChunkAccess for [Chunk] {
     }
 }
 
-impl TryChunkAccess for usize {
+impl ChunkRead for Chunk {
+    /// ChunkRead does not rely on IndexSet's non-zero-last-word invariant. Exposing this to the user is OK
+    fn get_chunk(&self, idx_of_chunk: usize) -> Option<usize> {
+        if idx_of_chunk == 0 {
+            Some(*self)
+        } else {
+            None
+        }
+    }
+}
+impl TryChunkAccess for Chunk {
     fn try_get_mut_chunk_creating(&mut self, idx_of_chunk: usize) -> Option<&mut usize> {
         if idx_of_chunk == 0 {
             Some(self)

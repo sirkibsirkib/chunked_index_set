@@ -1,5 +1,7 @@
-mod traits;
+use core::fmt::Display;
 pub use traits::{ChunkAccess, ChunkRead, TryChunkAccess};
+
+mod traits;
 
 mod index_set;
 pub use index_set::{IndexDrain, IndexSet};
@@ -10,13 +12,17 @@ use combinators::{BinChunkOp, CombinedChunks, NotChunks};
 pub mod iterators;
 use iterators::{ChunkIter, IndexIter};
 
-// #[cfg(test)]
-// mod tests;
+#[cfg(test)]
+mod tests;
 
 /////////////////////////////////////////////
+pub static EMPTY_SET: &[usize; 0] = &[];
+pub static FULL_SET: &combinators::NotChunks<[usize]> = &combinators::NotChunks(EMPTY_SET);
 
 pub type Chunk = usize; // stores up to usize::BITS Indexes
 pub type Index = usize; // BIT index
+
+pub struct DisplayableIndexSet<'a, A: ChunkRead + ?Sized>(&'a A);
 
 #[derive(Debug, Copy, Clone)]
 struct ChunkBitAddr {
@@ -24,7 +30,11 @@ struct ChunkBitAddr {
     idx_in_chunk: u32,   // invariant: in 0..usize::BITs
 }
 ///////////////////////////////////////////////////////////////////////
-
+impl<A: ChunkRead> Display for DisplayableIndexSet<'_, A> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_set().entries(self.0.iter_indexes()).finish()
+    }
+}
 impl ChunkBitAddr {
     fn from_bit_idx(bit_idx: usize) -> Self {
         Self {

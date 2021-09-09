@@ -1,3 +1,5 @@
+use crate::ChunkRead;
+use crate::CombinedChunks;
 use crate::{BinChunkOp, Chunk};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -38,7 +40,11 @@ impl BinChunkOp for Or {
 }
 impl BinChunkOp for Xor {
     fn combine_chunks(self, a: Option<Chunk>, b: Option<Chunk>) -> Option<Chunk> {
-        Some(z(a) ^ z(b))
+        if a.is_none() && b.is_none() {
+            None
+        } else {
+            Some(z(a) ^ z(b))
+        }
     }
 }
 impl BinChunkOp for And {

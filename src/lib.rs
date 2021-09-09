@@ -2,6 +2,7 @@ mod word_lookup;
 pub use word_lookup::WordLookup;
 
 mod words;
+pub use words::{WordDrain, Words};
 
 pub mod combinators;
 use combinators::{BinWordOperator, CombinedWords, NotWords};
@@ -13,12 +14,6 @@ use iterators::{SetBitIdxIter, WordIter};
 mod tests;
 
 /////////////////////////////////////////////
-
-#[derive(Default, Debug, Clone, Eq, PartialEq)]
-pub struct Words {
-    // invariant: last word is non-zero
-    pub(crate) words: Vec<usize>,
-}
 
 #[derive(Debug, Copy, Clone)]
 struct WordBitAddr {
@@ -33,6 +28,9 @@ impl WordBitAddr {
             idx_of_word: bit_idx / usize::BITS as usize,
             idx_in_word: (bit_idx % usize::BITS as usize) as u32,
         }
+    }
+    const fn word_mask(&self) -> usize {
+        1 << self.idx_in_word
     }
     fn to_bit_idx(self) -> usize {
         self.idx_of_word * usize::BITS as usize + self.idx_in_word as usize

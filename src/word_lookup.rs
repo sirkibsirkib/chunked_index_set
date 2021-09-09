@@ -2,17 +2,17 @@ use super::*;
 
 pub trait WordLookup: Copy {
     fn get_word(self, idx_of_word: usize) -> Option<usize>;
-    fn into_set_bit_iter(self) -> SetBitIdxIter<Self> {
+    fn iter_set_bits(self) -> SetBitIdxIter<Self> {
         SetBitIdxIter::new(self)
     }
-    fn into_word_iter(self) -> WordIter<Self> {
+    fn iter_words(self) -> WordIter<Self> {
         WordIter::new(self)
     }
-    fn count_bits(&self) -> usize {
-        self.into_word_iter().map(|x| x.count_ones() as usize).sum()
+    fn count_set_bits(self) -> usize {
+        self.iter_words().map(|x| x.count_ones() as usize).sum()
     }
     fn buffer_words_into(self, buf: &mut Vec<usize>) {
-        for word in self.into_word_iter() {
+        for word in self.iter_words() {
             buf.push(word)
         }
     }

@@ -21,6 +21,21 @@ pub struct CombinedWords<A: WordLookup, B: WordLookup> {
     pub op: BinWordOperator,
 }
 
+///////////////////////////
+impl BinWordOperator {
+    #[inline]
+    pub fn word_op_fn(self) -> fn(usize, usize) -> usize {
+        use BinWordOperator::*;
+        match self {
+            Nand => |a, b| !(a & b),
+            And => core::ops::BitAnd::bitand,
+            Or => core::ops::BitOr::bitor,
+            Xor => core::ops::BitXor::bitxor,
+            Difference => |a, b| a & !b,
+        }
+    }
+}
+
 impl<A: WordLookup> WordLookup for NotWords<A> {
     fn get_word(self, idx_of_word: usize) -> Option<usize> {
         Some(!self.a.get_word(idx_of_word).unwrap_or(0))
@@ -35,14 +50,6 @@ impl<A: WordLookup, B: WordLookup> WordLookup for &CombinedWords<A, B> {
         if let (None, None, _) | (_, None, And) | (None, _, And | Difference) = (wa, wb, self.op) {
             return None;
         }
-        let wa = wa.unwrap_or(0);
-        let wb = wb.unwrap_or(0);
-        Some(match self.op {
-            Nand => !(wa & wb),
-            And => wa & wb,
-            Or => wa & wb,
-            Xor => wa ^ wb,
-            Difference => wa & !wb,
-        })
+        Some((self.op.word_op_fn())(wa.unwrap_or(0), wb.unwrap_or(0)))
     }
 }

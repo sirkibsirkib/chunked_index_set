@@ -14,10 +14,7 @@ pub struct SetBitIdxIter<A: WordLookup> {
 
 impl<A: WordLookup> WordIter<A> {
     pub fn new(a: A) -> Self {
-        Self {
-            a,
-            idx_of_next_word: 0,
-        }
+        Self { a, idx_of_next_word: 0 }
     }
 }
 
@@ -32,10 +29,7 @@ impl<A: WordLookup> Iterator for WordIter<A> {
 
 impl<A: WordLookup> SetBitIdxIter<A> {
     pub fn new(a: A) -> Self {
-        Self {
-            wi: a.into_word_iter(),
-            cached: 0,
-        }
+        Self { wi: a.iter_words(), cached: 0 }
     }
 }
 impl<A: WordLookup> Iterator for SetBitIdxIter<A> {
@@ -47,10 +41,7 @@ impl<A: WordLookup> Iterator for SetBitIdxIter<A> {
         // self.cached is NONZERO
         let idx_in_word = self.cached.trailing_zeros();
         self.cached &= !(1 << idx_in_word);
-        let wba = WordBitAddr {
-            idx_in_word,
-            idx_of_word: self.wi.idx_of_next_word - 1,
-        };
+        let wba = WordBitAddr { idx_in_word, idx_of_word: self.wi.idx_of_next_word - 1 };
         Some(wba.to_bit_idx())
     }
 }

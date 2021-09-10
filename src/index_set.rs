@@ -8,10 +8,6 @@ pub struct IndexSet {
     pub(crate) chunks: Vec<Chunk>,
 }
 
-pub struct IndexDrain<'a> {
-    w: &'a mut IndexSet,
-}
-
 ////////////
 
 impl IndexSet {
@@ -25,9 +21,6 @@ impl IndexSet {
         let mut me = Self { chunks };
         me.pop_zero_tail();
         me
-    }
-    pub fn drain(&mut self) -> IndexDrain {
-        IndexDrain { w: self }
     }
     pub fn add_all<A: ChunkRead>(&mut self, a: A) {
         let mut it = a.iter_chunks();
@@ -101,16 +94,6 @@ impl IndexSet {
             // can't remove. absent chunk already encodes zero bit
             false
         }
-    }
-}
-impl Drop for IndexDrain<'_> {
-    fn drop(&mut self) {
-        self.w.clear()
-    }
-}
-impl ChunkRead for IndexDrain<'_> {
-    fn get_chunk(&self, idx_of_chunk: usize) -> Option<usize> {
-        self.w.get_chunk(idx_of_chunk)
     }
 }
 impl FromIterator<Index> for IndexSet {

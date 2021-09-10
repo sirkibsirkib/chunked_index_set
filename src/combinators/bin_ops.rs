@@ -1,5 +1,3 @@
-use crate::ChunkRead;
-use crate::CombinedChunks;
 use crate::{BinChunkOp, Chunk};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]

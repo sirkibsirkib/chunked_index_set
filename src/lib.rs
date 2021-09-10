@@ -4,7 +4,7 @@ pub use traits::{ChunkAccess, ChunkRead, TryChunkAccess};
 mod traits;
 
 mod index_set;
-pub use index_set::{IndexDrain, IndexSet};
+pub use index_set::IndexSet;
 
 pub mod combinators;
 use combinators::{BinChunkOp, CombinedChunks, NotChunks};

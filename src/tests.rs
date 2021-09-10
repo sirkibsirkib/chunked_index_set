@@ -30,22 +30,22 @@ fn chunks_hset_collect_count_eq() {
 
 #[test]
 fn chunks_covers_hset() {
-    let mut w = IndexSet::from_iter(seeded_stream(0));
+    let w = IndexSet::from_iter(seeded_stream(0));
     let mut h = HSet::from_iter(seeded_stream(0));
-    for i in w.drain().iter_indexes() {
+    for i in w.iter_indexes() {
         assert!(h.remove(&i));
     }
-    assert!(w.is_empty() && h.is_empty());
+    assert!(h.is_empty());
 }
 
 #[test]
 fn hset_covers_chunks() {
     let mut w = IndexSet::from_iter(seeded_stream(0));
-    let mut h = HSet::from_iter(seeded_stream(0));
-    for i in h.drain() {
+    let h = HSet::from_iter(seeded_stream(0));
+    for &i in h.iter() {
         assert!(w.remove_bit(i));
     }
-    assert!(w.is_empty() && h.is_empty());
+    assert!(w.is_empty());
 }
 
 #[test]

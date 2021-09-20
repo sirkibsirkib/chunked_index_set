@@ -43,7 +43,7 @@ fn hset_covers_chunks() {
     let mut w = IndexSet::from_iter(seeded_stream(0));
     let h = HSet::from_iter(seeded_stream(0));
     for &i in h.iter() {
-        assert!(w.remove_bit(i));
+        assert!(w.remove_index(i));
     }
     assert!(w.is_empty());
 }

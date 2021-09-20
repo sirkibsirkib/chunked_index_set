@@ -9,6 +9,17 @@ pub trait ChunkAccess: TryChunkAccess {
     fn insert_index(&mut self, bit_idx: Index) -> bool {
         self.try_insert_index(bit_idx).unwrap()
     }
+
+    fn from_indexes<I: IntoIterator<Item = Index>>(into_iter: I) -> Self
+    where
+        Self: Default + Sized,
+    {
+        let mut me = Self::default();
+        for index in into_iter {
+            me.insert_index(index);
+        }
+        me
+    }
 }
 pub trait TryChunkAccess: ChunkRead {
     fn try_get_mut_chunk_creating(&mut self, idx_of_chunk: usize) -> Option<&mut Chunk>;
@@ -22,16 +33,6 @@ pub trait TryChunkAccess: ChunkRead {
             *dest = src;
             idx_of_chunk += 1;
         }
-    }
-    fn try_from_indexes<I: IntoIterator<Item = Index>>(into_iter: I) -> Self
-    where
-        Self: Default + Sized,
-    {
-        let mut me = Self::default();
-        for index in into_iter {
-            let _ = me.try_insert_index(index);
-        }
-        me
     }
     fn try_get_mut_chunk_existing(&mut self, idx_of_chunk: usize) -> Option<&mut Chunk> {
         self.try_get_mut_chunk_creating(idx_of_chunk)
@@ -110,6 +111,9 @@ pub trait TryChunkAccess: ChunkRead {
 pub trait ChunkRead {
     fn get_chunk(&self, idx_of_chunk: Index) -> Option<Chunk>;
     ///////
+    fn to_index_set(&self) -> IndexSet {
+        IndexSet::from_chunks(self.iter_chunks().collect())
+    }
     fn index_cmp<A: ChunkRead>(&self, other: A) -> Option<core::cmp::Ordering> {
         let mut ord = core::cmp::Ordering::Equal;
         use core::cmp::Ordering as O;
@@ -143,9 +147,6 @@ pub trait ChunkRead {
     }
     fn is_empty(&self) -> bool {
         self.iter_chunks().any(|chunk| chunk != 0)
-    }
-    fn to_index_set(&self) -> IndexSet {
-        IndexSet::from_chunks(self.iter_chunks().collect())
     }
     fn displayable(&self) -> DisplayableIndexSet<Self> {
         DisplayableIndexSet(self)

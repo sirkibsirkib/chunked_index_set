@@ -86,7 +86,7 @@ pub trait TryChunkAccess: ChunkRead {
             }
         }
     }
-    fn remove_all<A: ChunkRead>(&mut self, a: A) {
+    fn remove_all<A: ChunkRead>(&mut self, a: &A) {
         for idx_of_chunk in 0.. {
             match (self.try_get_mut_chunk_existing(idx_of_chunk), a.get_chunk(idx_of_chunk)) {
                 (None, _) | (_, None) => return,
@@ -94,7 +94,7 @@ pub trait TryChunkAccess: ChunkRead {
             }
         }
     }
-    fn add_all<A: ChunkRead>(&mut self, a: A) {
+    fn insert_all<A: ChunkRead>(&mut self, a: &A) {
         for idx_of_chunk in 0.. {
             match a.get_chunk(idx_of_chunk) {
                 None => return,
@@ -114,7 +114,24 @@ pub trait ChunkRead {
     fn to_index_set(&self) -> IndexSet {
         IndexSet::from_chunks(self.iter_chunks().collect())
     }
-    fn index_cmp<A: ChunkRead>(&self, other: A) -> Option<core::cmp::Ordering> {
+    fn is_subset_of<A: ChunkRead>(&self, other: &A) -> bool {
+        use core::cmp::Ordering::*;
+        match self.set_cmp(other) {
+            Some(Equal | Less) => true,
+            Some(Greater) | None => true,
+        }
+    }
+    fn is_superset_of<A: ChunkRead>(&self, other: &A) -> bool {
+        use core::cmp::Ordering::*;
+        match self.set_cmp(other) {
+            Some(Equal | Greater) => true,
+            Some(Less) | None => true,
+        }
+    }
+    fn is_disjoint_with<A: ChunkRead>(&self, other: &A) -> bool {
+        self.combine_chunks(And, other).is_empty()
+    }
+    fn set_cmp<A: ChunkRead>(&self, other: &A) -> Option<core::cmp::Ordering> {
         let mut ord = core::cmp::Ordering::Equal;
         use core::cmp::Ordering as O;
         for idx_of_chunk in 0.. {
@@ -198,8 +215,3 @@ pub trait ChunkRead {
         self.combine_chunks(Diff, b)
     }
 }
-// impl<T: ChunkRead> ChunkRead for &T {
-//     fn get_chunk(&self, idx_of_chunk: usize) -> Option<Chunk> {
-//         <T as ChunkRead>::get_chunk(*self, idx_of_chunk)
-//     }
-// }

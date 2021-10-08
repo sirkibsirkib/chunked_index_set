@@ -1,5 +1,5 @@
 [package]
-name = "bit_tensor_2"
+name = "index_set_rw"
 version = "0.1.0"
 edition = "2018"
 

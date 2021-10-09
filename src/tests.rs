@@ -5,111 +5,128 @@ use std::collections::HashSet;
 use std::iter::FromIterator;
 
 type HSet = HashSet<usize>;
+const RANGES: &[Range<Index>] =
+    &[0..20, 0..40, 0..80, 0..140, 0..190, 0..250, 200..300, 0..280, 0..500];
 
 fn stream(seed: u64, bounds: Range<usize>) -> impl Iterator<Item = usize> {
     let rng = fastrand::Rng::with_seed(seed);
-    std::iter::repeat_with(move || rng.usize(bounds.clone()))
-}
-
-const RANGE: Range<Index> = 0..120;
-
-fn seeded_stream(seed: u64) -> impl Iterator<Item = usize> {
-    stream(seed, RANGE).take(60)
+    let len = bounds.len() * usize::BITS as usize / rng.usize(4..32);
+    std::iter::repeat_with(move || rng.usize(bounds.clone())).take(len)
 }
 
 #[test]
 fn collect_count_and_iter_count() {
-    let w = PackedIndexSet::<2>::from_iter(seeded_stream(0));
-    assert_eq!(w.count_indexes(), w.iter_indexes().count())
+    for range in RANGES.iter().cloned() {
+        let w = PackedIndexSet::<2>::from_iter(stream(0, range));
+        assert_eq!(w.count_indexes(), w.iter_indexes().count());
+    }
 }
 
 #[test]
 fn chunks_hset_collect_count_eq() {
-    let w = PackedIndexSet::<2>::from_iter(seeded_stream(0));
-    let h = HSet::from_iter(seeded_stream(0));
-    assert_eq!(w.count_indexes(), h.len());
+    for range in RANGES.iter().cloned() {
+        let w = PackedIndexSet::<2>::from_iter(stream(0, range.clone()));
+        let h = HSet::from_iter(stream(0, range));
+        assert_eq!(w.count_indexes(), h.len());
+    }
 }
 
 #[test]
 fn chunks_covers_hset() {
-    let w = PackedIndexSet::<2>::from_iter(seeded_stream(0));
-    let mut h = HSet::from_iter(seeded_stream(0));
-    for i in w.iter_indexes() {
-        assert!(h.remove(&i));
+    for range in RANGES.iter().cloned() {
+        let w = PackedIndexSet::<2>::from_iter(stream(0, range.clone()));
+        let mut h = HSet::from_iter(stream(0, range));
+        for i in w.iter_indexes() {
+            assert!(h.remove(&i));
+        }
+        assert!(h.is_empty());
     }
-    assert!(h.is_empty());
 }
 
 #[test]
 fn hset_covers_chunks() {
-    let mut w = PackedIndexSet::<2>::from_iter(seeded_stream(0));
-    let h = HSet::from_iter(seeded_stream(0));
-    println!("{:?}\n{:?}", &w, &h);
-    for &i in h.iter() {
-        assert!(w.remove(i));
+    for range in RANGES.iter().cloned() {
+        let mut w = PackedIndexSet::<2>::from_iter(stream(0, range.clone()));
+        let h = HSet::from_iter(stream(0, range));
+        println!("{:?}\n{:?}", &w, &h);
+        for &i in h.iter() {
+            assert!(w.remove(i));
+        }
+        println!("w {:?}", &w);
+        assert!(w.is_empty());
     }
-    println!("w {:?}", &w);
-    assert!(w.is_empty());
 }
 
 #[test]
 fn iter_and_collect_indices() {
-    let a = PackedIndexSet::<2>::from_iter(seeded_stream(0));
-    let b = PackedIndexSet::from_iter(a.iter_indexes());
-    assert_eq!(a, b)
+    for range in RANGES.iter().cloned() {
+        let a = PackedIndexSet::<2>::from_iter(stream(0, range));
+        let b = PackedIndexSet::from_iter(a.iter_indexes());
+        assert_eq!(a, b)
+    }
 }
 
 #[test]
 fn iter_and_collect_chunks() {
-    let a = PackedIndexSet::from_iter(seeded_stream(0));
-    let b = PackedIndexSet::<2>::from_chunks(a.iter_chunks());
-    assert_eq!(a, b)
+    for range in RANGES.iter().cloned() {
+        let a = PackedIndexSet::from_iter(stream(0, range));
+        let b = PackedIndexSet::<2>::from_chunks(a.iter_chunks());
+        assert_eq!(a, b)
+    }
 }
 
 #[test]
 fn and_intersects() {
-    let a = PackedIndexSet::<2>::from_iter(seeded_stream(0));
-    let b = PackedIndexSet::<2>::from_iter(seeded_stream(1));
-    let a_and_b = a.and(&b).to_index_set::<2>();
+    for range in RANGES.iter().cloned() {
+        let a = PackedIndexSet::<2>::from_iter(stream(0, range.clone()));
+        let b = PackedIndexSet::<2>::from_iter(stream(1, range.clone()));
+        let a_and_b = a.and(&b).to_index_set::<2>();
 
-    for i in RANGE {
-        assert_eq!(a.contains_index(i) && b.contains_index(i), a_and_b.contains_index(i));
+        for i in range {
+            assert_eq!(a.contains_index(i) && b.contains_index(i), a_and_b.contains_index(i));
+        }
     }
 }
 
 #[test]
 fn or_unions() {
-    let a = PackedIndexSet::<2>::from_iter(seeded_stream(0));
-    let b = PackedIndexSet::<2>::from_iter(seeded_stream(1));
+    for range in RANGES.iter().cloned() {
+        let a = PackedIndexSet::<2>::from_iter(stream(0, range.clone()));
+        let b = PackedIndexSet::<2>::from_iter(stream(1, range.clone()));
 
-    let a_or_b = a.or(&b).to_index_set::<2>();
+        let a_or_b = a.or(&b).to_index_set::<2>();
 
-    for i in RANGE {
-        assert_eq!(a.contains_index(i) || b.contains_index(i), a_or_b.contains_index(i));
+        for i in range {
+            assert_eq!(a.contains_index(i) || b.contains_index(i), a_or_b.contains_index(i));
+        }
     }
 }
 
 #[test]
 fn xor_sym_diffs() {
-    let a = PackedIndexSet::<2>::from_iter(seeded_stream(0));
-    let b = PackedIndexSet::<2>::from_iter(seeded_stream(1));
+    for range in RANGES.iter().cloned() {
+        let a = PackedIndexSet::<2>::from_iter(stream(0, range.clone()));
+        let b = PackedIndexSet::<2>::from_iter(stream(1, range.clone()));
 
-    let a_xor_b = a.xor(&b).to_index_set::<2>();
+        let a_xor_b = a.xor(&b).to_index_set::<2>();
 
-    for i in RANGE {
-        assert_eq!(a.contains_index(i) ^ b.contains_index(i), a_xor_b.contains_index(i));
+        for i in range {
+            assert_eq!(a.contains_index(i) ^ b.contains_index(i), a_xor_b.contains_index(i));
+        }
     }
 }
 
 #[test]
 fn diff_diffs() {
-    let a = PackedIndexSet::<2>::from_iter(seeded_stream(0));
-    let b = PackedIndexSet::<2>::from_iter(seeded_stream(1));
+    for range in RANGES.iter().cloned() {
+        let a = PackedIndexSet::<2>::from_iter(stream(0, range.clone()));
+        let b = PackedIndexSet::<2>::from_iter(stream(1, range.clone()));
 
-    let a_diff_b = a.diff(&b).to_index_set::<2>();
+        let a_diff_b = a.diff(&b).to_index_set::<2>();
 
-    for i in RANGE {
-        assert_eq!(a.contains_index(i) & !b.contains_index(i), a_diff_b.contains_index(i));
+        for i in range {
+            assert_eq!(a.contains_index(i) & !b.contains_index(i), a_diff_b.contains_index(i));
+        }
     }
 }
 

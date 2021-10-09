@@ -165,7 +165,7 @@ pub trait ChunkRead {
         unreachable!()
     }
     fn is_empty(&self) -> bool {
-        self.iter_chunks().any(|chunk| chunk != 0)
+        self.iter_chunks().all(|chunk| chunk == 0)
     }
     fn displayable(&self) -> DisplayableIndexSet<Self> {
         DisplayableIndexSet(self)

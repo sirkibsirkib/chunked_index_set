@@ -26,11 +26,6 @@ pub struct PackedIndexSet<const N: usize> {
     packed_chunk_storage: PackedChunkStorage<N>,
     chunk_count: usize,
 }
-impl<const N: usize> Drop for PackedChunkStorage<N> {
-    fn drop(&mut self) {
-        todo!()
-    }
-}
 impl<const N: usize> Default for PackedIndexSet<N> {
     fn default() -> Self {
         Self::with_chunk_capacity(0)

@@ -5,8 +5,22 @@ use std::collections::HashSet;
 use std::iter::FromIterator;
 
 type HSet = HashSet<usize>;
-const RANGES: &[Range<Index>] =
-    &[0..20, 0..40, 0..80, 0..140, 0..190, 0..250, 200..300, 0..280, 0..500];
+const RANGES: &[Range<Index>] = &[
+    0..20,
+    0..40,
+    0..80,
+    0..140,
+    0..190,
+    0..250,
+    200..300,
+    0..280,
+    0..500,
+    0..600,
+    0..700,
+    600..800,
+    0..900,
+    0..1000,
+];
 
 fn stream(seed: u64, bounds: Range<usize>) -> impl Iterator<Item = usize> {
     let rng = fastrand::Rng::with_seed(seed);

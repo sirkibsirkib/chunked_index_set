@@ -1,10 +1,10 @@
 use core::fmt::Display;
-pub use traits::{ChunkAccess, ChunkRead, TryChunkAccess};
+pub use traits::ChunkRead;
 
 mod traits;
 
 mod index_set;
-pub use index_set::IndexSet;
+pub use index_set::PackedIndexSet;
 
 pub mod combinators;
 use combinators::{BinChunkOp, CombinedChunks, NotChunks};
@@ -30,6 +30,7 @@ struct ChunkBitAddr {
     idx_in_chunk: u32,   // invariant: in 0..usize::BITs
 }
 ///////////////////////////////////////////////////////////////////////
+const CHUNK_BYTES: usize = core::mem::size_of::<Chunk>();
 impl<A: ChunkRead> Display for DisplayableIndexSet<'_, A> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_set().entries(self.0.iter_indexes()).finish()

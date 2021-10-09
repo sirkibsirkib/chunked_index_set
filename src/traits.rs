@@ -2,6 +2,7 @@ use super::*;
 
 use crate::combinators::bin_ops::*;
 
+/*
 pub trait ChunkAccess: TryChunkAccess {
     fn get_mut_chunk_creating(&mut self, idx_of_chunk: usize) -> &mut Chunk {
         self.try_get_mut_chunk_creating(idx_of_chunk).unwrap()
@@ -107,12 +108,13 @@ pub trait TryChunkAccess: ChunkRead {
         }
     }
 }
+*/
 
 pub trait ChunkRead {
     fn get_chunk(&self, idx_of_chunk: Index) -> Option<Chunk>;
     ///////
-    fn to_index_set(&self) -> IndexSet {
-        IndexSet::from_chunks(self.iter_chunks().collect())
+    fn to_index_set<const N: usize>(&self) -> PackedIndexSet<N> {
+        PackedIndexSet::from_chunks(self.iter_chunks())
     }
     fn is_subset_of<A: ChunkRead>(&self, other: &A) -> bool {
         use core::cmp::Ordering::*;

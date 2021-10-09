@@ -11,8 +11,10 @@ fn stream(seed: u64, bounds: Range<usize>) -> impl Iterator<Item = usize> {
     std::iter::repeat_with(move || rng.usize(bounds.clone()))
 }
 
+const RANGE: Range<Index> = 0..120;
+
 fn seeded_stream(seed: u64) -> impl Iterator<Item = usize> {
-    stream(seed, 0..120).take(60)
+    stream(seed, RANGE).take(60)
 }
 
 #[test]
@@ -68,14 +70,50 @@ fn iter_and_collect_chunks() {
 fn and_intersects() {
     let a = PackedIndexSet::<2>::from_iter(seeded_stream(0));
     let b = PackedIndexSet::<2>::from_iter(seeded_stream(1));
-
     let a_and_b = a.and(&b).to_index_set::<2>();
-    for i in a_and_b.iter_indexes() {
-        assert!(a.contains_index(i) && b.contains_index(i))
+
+    for i in RANGE {
+        assert_eq!(a.contains_index(i) && b.contains_index(i), a_and_b.contains_index(i));
+    }
+}
+
+#[test]
+fn or_unions() {
+    let a = PackedIndexSet::<2>::from_iter(seeded_stream(0));
+    let b = PackedIndexSet::<2>::from_iter(seeded_stream(1));
+
+    let a_or_b = a.or(&b).to_index_set::<2>();
+
+    for i in RANGE {
+        assert_eq!(a.contains_index(i) || b.contains_index(i), a_or_b.contains_index(i));
+    }
+}
+
+#[test]
+fn xor_sym_diffs() {
+    let a = PackedIndexSet::<2>::from_iter(seeded_stream(0));
+    let b = PackedIndexSet::<2>::from_iter(seeded_stream(1));
+
+    let a_xor_b = a.xor(&b).to_index_set::<2>();
+
+    for i in RANGE {
+        assert_eq!(a.contains_index(i) ^ b.contains_index(i), a_xor_b.contains_index(i));
+    }
+}
+
+#[test]
+fn diff_diffs() {
+    let a = PackedIndexSet::<2>::from_iter(seeded_stream(0));
+    let b = PackedIndexSet::<2>::from_iter(seeded_stream(1));
+
+    let a_diff_b = a.diff(&b).to_index_set::<2>();
+
+    for i in RANGE {
+        assert_eq!(a.contains_index(i) & !b.contains_index(i), a_diff_b.contains_index(i));
     }
 }
 
 #[test]
 fn stack_chunks() {
-    let _chunks = PackedIndexSet::<2>::default();
+    PackedIndexSet::<2>::default();
 }

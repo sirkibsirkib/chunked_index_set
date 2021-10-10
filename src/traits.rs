@@ -6,8 +6,8 @@ pub trait ChunkRead {
     fn get_chunk(&self, idx_of_chunk: Index) -> Option<Chunk>;
     fn zero_chunks_from(&self) -> usize;
     ///////
-    fn to_index_set<const N: usize>(&self) -> PackedIndexSet<N> {
-        let chunk_capacity = {
+    fn zero_chunks_from_exact(&self) -> usize {
+
             // scan from back to front looking for 1st nonzero chunk
             let mut at = self.zero_chunks_from();
             // at points to SOME nonzero chunk. Is there another before it?
@@ -16,8 +16,9 @@ pub trait ChunkRead {
                 at -= 1;
             }
             at
-        };
-        let mut me = PackedIndexSet::<N>::with_chunk_capacity(chunk_capacity);
+    }
+    fn to_index_set<const N: usize>(&self) -> PackedIndexSet<N> {
+        let mut me = PackedIndexSet::<N>::with_chunk_capacity(self.zero_chunks_from_exact());
         for (index_of_chunk, write_chunk) in me.as_chunks_mut().iter_mut().enumerate() {
             if let Some(read_chunk) = self.get_chunk(index_of_chunk) {
                 *write_chunk = read_chunk;

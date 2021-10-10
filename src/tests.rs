@@ -1,3 +1,4 @@
+use crate::combinators::bin_ops::Or;
 use crate::*;
 use core::ops::Range;
 
@@ -147,4 +148,20 @@ fn diff_diffs() {
 #[test]
 fn stack_chunks() {
     PackedIndexSet::<2>::default();
+}
+
+#[test]
+fn combine_overwrite_is_ok() {
+    for range in RANGES.iter().cloned() {
+        let a = PackedIndexSet::<2>::from_iter(stream(0, range.clone()));
+        let b = PackedIndexSet::<2>::from_iter(stream(1, range.clone()));
+
+        let c = a.or(&b).to_index_set::<2>();
+        let d = {
+            let mut d = a.clone();
+            d.overwrite_from_combination(Or, &b);
+            d
+        };
+        assert_eq!(c, d);
+    }
 }

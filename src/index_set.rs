@@ -1,5 +1,6 @@
 use super::{Chunk, ChunkRead, CHUNK_BYTES};
 use crate::index_count_to_chunk_count;
+use crate::BinChunkOp;
 use crate::ChunkBitAddr;
 use crate::Index;
 use core::fmt::Debug;
@@ -201,6 +202,19 @@ impl<const N: usize> PackedIndexSet<N> {
     pub fn clear(&mut self) {
         for chunk in self.as_chunks_mut() {
             *chunk = 0;
+        }
+    }
+    pub fn overwrite_from_combination<O: BinChunkOp, A: ChunkRead>(&mut self, op: O, other: &A) {
+        let zcf = op.combine_readers(self, other).zero_chunks_from_exact();
+        if self.chunk_count < zcf {
+            self.resize_chunks_to(zcf);
+        }
+        for (idx_of_chunk, write_chunk) in self.as_chunks_mut().iter_mut().enumerate() {
+            if let Some(combined) =
+                op.combine_chunks(Some(*write_chunk), other.get_chunk(idx_of_chunk))
+            {
+                *write_chunk = combined;
+            }
         }
     }
 }

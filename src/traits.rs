@@ -4,10 +4,20 @@ use crate::combinators::bin_ops::*;
 
 pub trait ChunkRead {
     fn get_chunk(&self, idx_of_chunk: Index) -> Option<Chunk>;
-    fn no_chunks_from(&self) -> usize;
+    fn zero_chunks_from(&self) -> usize;
     ///////
     fn to_index_set<const N: usize>(&self) -> PackedIndexSet<N> {
-        let mut me = PackedIndexSet::<N>::with_chunk_capacity(self.no_chunks_from());
+        let chunk_capacity = {
+            // scan from back to front looking for 1st nonzero chunk
+            let mut at = self.zero_chunks_from();
+            // at points to SOME nonzero chunk. Is there another before it?
+            while at > 0 && self.get_chunk(at-1).unwrap_or(0) == 0 {
+                // yep. there's another one at at-1
+                at -= 1;
+            }
+            at
+        };
+        let mut me = PackedIndexSet::<N>::with_chunk_capacity(chunk_capacity);
         for (index_of_chunk, write_chunk) in me.as_chunks_mut().iter_mut().enumerate() {
             if let Some(read_chunk) = self.get_chunk(index_of_chunk) {
                 *write_chunk = read_chunk;

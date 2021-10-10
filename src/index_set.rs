@@ -208,7 +208,7 @@ impl<const N: usize> ChunkRead for PackedIndexSet<N> {
     fn get_chunk(&self, idx_of_chunk: usize) -> Option<Chunk> {
         self.as_chunks().get(idx_of_chunk).copied()
     }
-    fn no_chunks_from(&self) -> usize {
+    fn zero_chunks_from(&self) -> usize {
         self.chunk_count
     }
 }
@@ -248,7 +248,7 @@ impl ChunkRead for Chunk {
             None
         }
     }
-    fn no_chunks_from(&self) -> usize {
+    fn zero_chunks_from(&self) -> usize {
         1
     }
 }
@@ -257,7 +257,7 @@ impl ChunkRead for [Chunk] {
     fn get_chunk(&self, idx_of_chunk: usize) -> Option<usize> {
         self.get(idx_of_chunk).copied()
     }
-    fn no_chunks_from(&self) -> usize {
+    fn zero_chunks_from(&self) -> usize {
         self.len()
     }
 }

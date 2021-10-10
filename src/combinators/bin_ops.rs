@@ -23,7 +23,7 @@ impl BinChunkOp for Or {
             Some(z(a) | z(b))
         }
     }
-    fn combine_zero_chunks_from(self, ncfa: usize, ncfb: usize) -> usize {
+    fn combine_zero_chunks_from_conservative(self, ncfa: usize, ncfb: usize) -> usize {
         ncfa.max(ncfb)
     }
 }
@@ -35,7 +35,7 @@ impl BinChunkOp for Xor {
             Some(z(a) ^ z(b))
         }
     }
-    fn combine_zero_chunks_from(self, ncfa: usize, ncfb: usize) -> usize {
+    fn combine_zero_chunks_from_conservative(self, ncfa: usize, ncfb: usize) -> usize {
         ncfa.max(ncfb)
     }
 }
@@ -47,7 +47,7 @@ impl BinChunkOp for And {
             None
         }
     }
-    fn combine_zero_chunks_from(self, ncfa: usize, ncfb: usize) -> usize {
+    fn combine_zero_chunks_from_conservative(self, ncfa: usize, ncfb: usize) -> usize {
         ncfa.min(ncfb)
     }
 }
@@ -59,7 +59,7 @@ impl BinChunkOp for Diff {
             None
         }
     }
-    fn combine_zero_chunks_from(self, ncfa: usize, _ncfb: usize) -> usize {
+    fn combine_zero_chunks_from_conservative(self, ncfa: usize, _ncfb: usize) -> usize {
         ncfa
     }
 }

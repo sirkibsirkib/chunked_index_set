@@ -85,7 +85,7 @@ fn iter_and_collect_indices() {
 fn iter_and_collect_chunks() {
     for range in RANGES.iter().cloned() {
         let a = IndexSet::from_iter(stream(0, range));
-        let b = IndexSet::<2>::from_chunks(a.iter_chunks());
+        let b = IndexSet::<2>::from_chunk_iter(a.iter_chunks());
         assert_eq!(a, b)
     }
 }
@@ -164,4 +164,11 @@ fn combine_overwrite_is_ok() {
         };
         assert_eq!(c, d);
     }
+}
+
+#[test]
+fn from_chunk_slice() {
+    let a = IndexSet::<2>::from_chunk_slice(&[0b11000]);
+    let b: IndexSet<2> = [4, 3, 3].iter().copied().collect();
+    assert_eq!(a, b);
 }

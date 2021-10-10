@@ -51,15 +51,19 @@ impl<const N: usize> Clone for IndexSet<N> {
     }
 }
 impl<const N: usize> IndexSet<N> {
+    /// Returns the IndexSet's index capacity.
     pub fn capacity(&self) -> RangeTo<usize> {
         ..(self.chunk_count * usize::BITS as usize)
     }
+    /// Creates an empty IndexSet with minimal chunk_count s.t. index_count <= capacity().
     pub fn with_min_capacity(index_count: usize) -> Self {
         Self::with_chunk_capacity(index_count_to_chunk_count(index_count))
     }
+    /// Returns the IndexSet's chunk capacity
     pub fn chunk_capacity(&self) -> usize {
         self.chunk_count
     }
+    /// Creates an empty IndexSet with the given chunk capacity
     pub fn with_chunk_capacity(mut chunk_count: usize) -> Self {
         chunk_count = chunk_count.max(N);
         let packed_chunk_storage = if chunk_count == N {
@@ -84,7 +88,9 @@ impl<const N: usize> IndexSet<N> {
         };
         Self { packed_chunk_storage, chunk_count }
     }
-    pub fn from_chunks<I: IntoIterator<Item = Chunk>>(it: I) -> Self {
+    /// Creates an IndexSet from a sequence of contiguous chunks.
+    /// Result may have greater capacity than the number of chunks provided.
+    pub fn from_chunk_iter<I: IntoIterator<Item = Chunk>>(it: I) -> Self {
         let it = it.into_iter();
         let mut me = Self::with_chunk_capacity(it.size_hint().0);
         for (idx_of_chunk, read_chunk) in it.enumerate() {
@@ -99,6 +105,14 @@ impl<const N: usize> IndexSet<N> {
         }
         me
     }
+    /// Creates an IndexSet from a sequence of contiguous chunks.
+    /// Result has a chunk capacity equivalent to the length of the slice.
+    pub fn from_chunk_slice(chunks: &[Chunk]) -> Self {
+        let mut me = Self::with_chunk_capacity(chunks.len());
+        Self::add_all::<[Chunk]>(&mut me, chunks);
+        me
+    }
+    /// Returns an immutable slice of the stored Chunks
     pub fn as_chunks(&self) -> &[Chunk] {
         unsafe {
             let chunks_ptr = if self.chunk_count == N {
@@ -109,6 +123,7 @@ impl<const N: usize> IndexSet<N> {
             std::slice::from_raw_parts(chunks_ptr, self.chunk_count)
         }
     }
+    /// Returns a mutable slice of the stored Chunks
     pub fn as_chunks_mut(&mut self) -> &mut [Chunk] {
         unsafe {
             let chunks_ptr = if self.chunk_count == N {
@@ -119,8 +134,10 @@ impl<const N: usize> IndexSet<N> {
             std::slice::from_raw_parts_mut(chunks_ptr, self.chunk_count)
         }
     }
-    pub fn remove(&mut self, bit_idx: Index) -> bool {
-        let cba = ChunkBitAddr::from_bit_idx(bit_idx);
+
+    /// Removes the given index from the set. Returns whether it was present before i.e. the set has changed.
+    pub fn remove(&mut self, index: Index) -> bool {
+        let cba = ChunkBitAddr::from_bit_idx(index);
         self.as_chunks_mut()
             .get_mut(cba.idx_of_chunk)
             .map(|chunk| {
@@ -136,8 +153,8 @@ impl<const N: usize> IndexSet<N> {
             .and_then(usize::checked_next_power_of_two)
             .expect("Cannot accomodate that many chunks")
     }
-
-    /// afterwards has chunks in current [0..chunk_count] and self.chunk_count
+    /// Resizes the chunk storage, trucating chunks if chunk_count < self.chunk_count().
+    /// Afterwards, has the same chunks as before in [0..chunk_count] and self.chunk_count() == chunk_count.
     pub fn resize_chunks_to(&mut self, chunk_count: usize) {
         let mut new = Self::with_chunk_capacity(chunk_count);
         for (src, dest) in self.as_chunks().iter().zip(new.as_chunks_mut()) {
@@ -145,10 +162,11 @@ impl<const N: usize> IndexSet<N> {
         }
         *self = new; // drops current
     }
-    /// afterwards has same contents but idx_of_chunk < self.chunk_count
+    /// afterwards has same contents but idx_of_chunk < self.chunk_count()
     pub fn resize_chunks_to_accomodate(&mut self, idx_of_chunk: usize) {
         self.resize_chunks_to(Self::size_accomodating_chunk_idx(idx_of_chunk))
     }
+    /// Adds the given index to the set. Returns whether it was absent before i.e. the set has changed.
     pub fn insert(&mut self, bit_idx: usize) -> bool {
         let cba = ChunkBitAddr::from_bit_idx(bit_idx);
         if self.chunk_count <= cba.idx_of_chunk {
@@ -162,8 +180,8 @@ impl<const N: usize> IndexSet<N> {
         *chunk |= cba.chunk_mask();
         was_unset
     }
-    // equivalent to for i in r.iter_indexes() { self.insert(i); }
-    pub fn add_all<R: ChunkRead>(&mut self, r: &R) {
+    /// Equivalent to for i in r.iter_indexes() { self.insert(i); }
+    pub fn add_all<R: ChunkRead + ?Sized>(&mut self, r: &R) {
         for idx_of_chunk in 0.. {
             if let Some(read_chunk) = r.get_chunk(idx_of_chunk) {
                 if read_chunk != 0 {
@@ -181,7 +199,7 @@ impl<const N: usize> IndexSet<N> {
             }
         }
     }
-    // equivalent to for i in r.iter_indexes() { self.insert(i); }
+    /// Equivalent to for i in r.iter_indexes() { self.insert(i); }
     pub fn remove_all<R: ChunkRead>(&mut self, r: &R) {
         for (idx_of_chunk, write_chunk) in self.as_chunks_mut().iter_mut().enumerate() {
             if let Some(read_chunk) = r.get_chunk(idx_of_chunk) {
@@ -193,7 +211,7 @@ impl<const N: usize> IndexSet<N> {
             }
         }
     }
-    // does not change contents, but minimizes self.chunk_count
+    /// Minimizes self.chunk_count() without changing the set's elements.
     pub fn shrink_to_fit(&mut self) {
         let new_chunk_count = self.zero_chunks_from_exact();
         if new_chunk_count < self.chunk_count {
@@ -203,16 +221,16 @@ impl<const N: usize> IndexSet<N> {
             }
         }
     }
-    // leaves chunks unchanged. Afterwards, containits no indexes
+    /// Leaves chunks unchanged. Afterwards, containits no indexes
     pub fn clear(&mut self) {
         for chunk in self.as_chunks_mut() {
             *chunk = 0;
         }
     }
-    // in-place equivalent to {
-    //   *self = self.clone().combined(op, other).to_index_set();
-    //   self.shrink_to_fit();
-    // }
+    /// in-place equivalent to {
+    ///   *self = self.clone().combined(op, other).to_index_set();
+    ///   self.shrink_to_fit();
+    /// }
     pub fn overwrite_from_combination<O: BinChunkOp, A: ChunkRead>(&mut self, op: O, other: &A) {
         let zcf = op.combine_readers(self, other).zero_chunks_from_exact();
         if self.chunk_count < zcf {
@@ -231,7 +249,7 @@ impl<const N: usize> ChunkRead for IndexSet<N> {
     fn get_chunk(&self, idx_of_chunk: usize) -> Option<Chunk> {
         self.as_chunks().get(idx_of_chunk).copied()
     }
-    fn zero_chunks_from(&self) -> usize {
+    fn zero_chunks_from_conservative(&self) -> usize {
         self.chunk_count
     }
 }
@@ -271,7 +289,7 @@ impl ChunkRead for Chunk {
             None
         }
     }
-    fn zero_chunks_from(&self) -> usize {
+    fn zero_chunks_from_conservative(&self) -> usize {
         1
     }
 }
@@ -280,7 +298,7 @@ impl ChunkRead for [Chunk] {
     fn get_chunk(&self, idx_of_chunk: usize) -> Option<usize> {
         self.get(idx_of_chunk).copied()
     }
-    fn zero_chunks_from(&self) -> usize {
+    fn zero_chunks_from_conservative(&self) -> usize {
         self.len()
     }
 }

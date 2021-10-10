@@ -12,7 +12,7 @@ impl ChunkRead for EmptyIndexSet {
     fn get_chunk(&self, _: usize) -> Option<usize> {
         None
     }
-    fn zero_chunks_from(&self) -> usize {
+    fn zero_chunks_from_conservative(&self) -> usize {
         0
     }
 }
@@ -20,7 +20,7 @@ impl ChunkRead for EmptyIndexSet {
 pub trait BinChunkOp: Copy {
     /// NONE means zero chunk AND all subsequent chunks are zero
     fn combine_chunks(self, a: Option<Chunk>, b: Option<Chunk>) -> Option<Chunk>;
-    fn combine_zero_chunks_from(self, ncfa: usize, ncfb: usize) -> usize;
+    fn combine_zero_chunks_from_conservative(self, ncfa: usize, ncfb: usize) -> usize;
     fn combine_readers<'a, A: ChunkRead, B: ChunkRead>(
         self,
         a: &'a A,
@@ -44,7 +44,10 @@ impl<A: ChunkRead + ?Sized, B: ChunkRead + ?Sized, O: BinChunkOp> ChunkRead
     fn get_chunk(&self, idx_of_chunk: usize) -> Option<Chunk> {
         self.op.combine_chunks(self.a.get_chunk(idx_of_chunk), self.b.get_chunk(idx_of_chunk))
     }
-    fn zero_chunks_from(&self) -> usize {
-        self.op.combine_zero_chunks_from(self.a.zero_chunks_from(), self.b.zero_chunks_from())
+    fn zero_chunks_from_conservative(&self) -> usize {
+        self.op.combine_zero_chunks_from_conservative(
+            self.a.zero_chunks_from_conservative(),
+            self.b.zero_chunks_from_conservative(),
+        )
     }
 }

@@ -2,14 +2,20 @@ use super::*;
 
 use crate::combinators::bin_ops::*;
 
+/// Any structure that acts as an immutable, contiguous storage of chunks, representing a contiguous storage of indices.
 pub trait ChunkRead {
+    /// Return the chunk at index idx_of_chunk.
+    /// None represents same empty index set as Some(0),
+    /// but also means that every result of get_chunk(x) for x in idx_of_chunk.. will return None also.
     fn get_chunk(&self, idx_of_chunk: Index) -> Option<Chunk>;
-    fn zero_chunks_from(&self) -> usize;
+
+    /// Return an index s.t. get_chunk(x) for x in idx_of_chunk.. will return None. Prioritize speed over accuracy.
+    fn zero_chunks_from_conservative(&self) -> usize;
     ///////
     fn zero_chunks_from_exact(&self) -> usize {
 
             // scan from back to front looking for 1st nonzero chunk
-            let mut at = self.zero_chunks_from();
+            let mut at = self.zero_chunks_from_conservative();
             // at points to SOME nonzero chunk. Is there another before it?
             while at > 0 && self.get_chunk(at-1).unwrap_or(0) == 0 {
                 // yep. there's another one at at-1

@@ -1,8 +1,6 @@
 use crate::{BinChunkOp, Chunk};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub struct Nand;
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Or;
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Xor;
@@ -10,22 +8,12 @@ pub struct Xor;
 pub struct And;
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct Diff;
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub struct Fst;
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub struct Snd;
 
 //////////
 
 #[inline]
 fn z(chunk: Option<Chunk>) -> Chunk {
     chunk.unwrap_or(0)
-}
-
-impl BinChunkOp for Nand {
-    fn combine_chunks(self, a: Option<Chunk>, b: Option<Chunk>) -> Option<Chunk> {
-        Some(!(z(a) & z(b)))
-    }
 }
 impl BinChunkOp for Or {
     fn combine_chunks(self, a: Option<Chunk>, b: Option<Chunk>) -> Option<Chunk> {
@@ -34,6 +22,9 @@ impl BinChunkOp for Or {
         } else {
             Some(z(a) | z(b))
         }
+    }
+    fn combine_no_chunks_from(self, ncfa: usize, ncfb: usize) -> usize {
+        ncfa.max(ncfb)
     }
 }
 impl BinChunkOp for Xor {
@@ -44,6 +35,9 @@ impl BinChunkOp for Xor {
             Some(z(a) ^ z(b))
         }
     }
+    fn combine_no_chunks_from(self, ncfa: usize, ncfb: usize) -> usize {
+        ncfa.max(ncfb)
+    }
 }
 impl BinChunkOp for And {
     fn combine_chunks(self, a: Option<Chunk>, b: Option<Chunk>) -> Option<Chunk> {
@@ -52,6 +46,9 @@ impl BinChunkOp for And {
         } else {
             None
         }
+    }
+    fn combine_no_chunks_from(self, ncfa: usize, ncfb: usize) -> usize {
+        ncfa.min(ncfb)
     }
 }
 impl BinChunkOp for Diff {
@@ -62,14 +59,7 @@ impl BinChunkOp for Diff {
             None
         }
     }
-}
-impl BinChunkOp for Fst {
-    fn combine_chunks(self, a: Option<Chunk>, _: Option<Chunk>) -> Option<Chunk> {
-        a
-    }
-}
-impl BinChunkOp for Snd {
-    fn combine_chunks(self, _: Option<Chunk>, b: Option<Chunk>) -> Option<Chunk> {
-        b
+    fn combine_no_chunks_from(self, ncfa: usize, _ncfb: usize) -> usize {
+        ncfa
     }
 }

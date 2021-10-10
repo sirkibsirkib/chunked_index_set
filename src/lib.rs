@@ -7,7 +7,7 @@ mod index_set;
 pub use index_set::PackedIndexSet;
 
 pub mod combinators;
-use combinators::{BinChunkOp, CombinedChunks, NotChunks};
+use combinators::{BinChunkOp, CombinedChunks};
 
 pub mod iterators;
 use iterators::{ChunkIter, IndexIter};
@@ -16,8 +16,6 @@ use iterators::{ChunkIter, IndexIter};
 mod tests;
 
 /////////////////////////////////////////////
-pub static EMPTY_SET: &[usize; 0] = &[];
-pub static FULL_SET: &combinators::NotChunks<[usize]> = &combinators::NotChunks(EMPTY_SET);
 
 pub type Chunk = usize; // stores up to usize::BITS Indexes
 pub type Index = usize; // BIT index
@@ -31,6 +29,10 @@ struct ChunkBitAddr {
 }
 ///////////////////////////////////////////////////////////////////////
 const CHUNK_BYTES: usize = core::mem::size_of::<Chunk>();
+
+fn index_count_to_chunk_count(index_count: usize) -> usize {
+    (index_count + usize::BITS as usize - 1) / usize::BITS as usize
+}
 impl<A: ChunkRead> Display for DisplayableIndexSet<'_, A> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_set().entries(self.0.iter_indexes()).finish()

@@ -1,4 +1,5 @@
 use super::{Chunk, ChunkRead, CHUNK_BYTES};
+use crate::index_count_to_chunk_count;
 use crate::ChunkBitAddr;
 use crate::Index;
 use core::fmt::Debug;
@@ -41,6 +42,9 @@ impl<const N: usize> Clone for PackedIndexSet<N> {
     }
 }
 impl<const N: usize> PackedIndexSet<N> {
+    pub fn with_capacity(index_count: usize) -> Self {
+        Self::with_chunk_capacity(index_count_to_chunk_count(index_count))
+    }
     pub fn with_chunk_capacity(mut chunk_count: usize) -> Self {
         chunk_count = chunk_count.max(N);
         let packed_chunk_storage = if chunk_count == N {
@@ -65,24 +69,12 @@ impl<const N: usize> PackedIndexSet<N> {
         };
         Self { packed_chunk_storage, chunk_count }
     }
-    pub fn as_chunks(&self) -> &[Chunk] {
-        unsafe {
-            let chunks_ptr: *const Chunk = if self.chunk_count == N {
-                // stack!
-                self.packed_chunk_storage.stack_chunks.as_ptr()
-            } else {
-                // heap!
-                self.packed_chunk_storage.heap_chunks_ptr
-            };
-            std::slice::from_raw_parts(chunks_ptr, self.chunk_count)
-        }
-    }
     pub fn from_chunks<I: IntoIterator<Item = Chunk>>(it: I) -> Self {
         let it = it.into_iter();
         let mut me = Self::with_chunk_capacity(it.size_hint().0);
         for (idx_of_chunk, read_chunk) in it.enumerate() {
             if me.chunk_count <= idx_of_chunk {
-                me.resize_to_accomodate(idx_of_chunk)
+                me.resize_chunks_to_accomodate(idx_of_chunk)
             }
             let write_chunk = unsafe {
                 // certainly in bounds
@@ -92,13 +84,21 @@ impl<const N: usize> PackedIndexSet<N> {
         }
         me
     }
+    pub fn as_chunks(&self) -> &[Chunk] {
+        unsafe {
+            let chunks_ptr = if self.chunk_count == N {
+                self.packed_chunk_storage.stack_chunks.as_ptr()
+            } else {
+                self.packed_chunk_storage.heap_chunks_ptr
+            };
+            std::slice::from_raw_parts(chunks_ptr, self.chunk_count)
+        }
+    }
     pub fn as_chunks_mut(&mut self) -> &mut [Chunk] {
         unsafe {
-            let chunks_ptr: *mut Chunk = if self.chunk_count == N {
-                // stack!
+            let chunks_ptr = if self.chunk_count == N {
                 self.packed_chunk_storage.stack_chunks.as_mut_ptr()
             } else {
-                // heap!
                 self.packed_chunk_storage.heap_chunks_ptr
             };
             std::slice::from_raw_parts_mut(chunks_ptr, self.chunk_count)
@@ -128,20 +128,20 @@ impl<const N: usize> PackedIndexSet<N> {
             .and_then(usize::checked_next_power_of_two)
             .expect("Cannot accomodate that many chunks")
     }
-    pub fn resize_to(&mut self, chunk_count: usize) {
+    pub fn resize_chunks_to(&mut self, chunk_count: usize) {
         let mut new = Self::with_chunk_capacity(chunk_count);
         for (src, dest) in self.as_chunks().iter().zip(new.as_chunks_mut()) {
             *dest = *src;
         }
         *self = new; // drops current
     }
-    pub fn resize_to_accomodate(&mut self, idx_of_chunk: usize) {
-        self.resize_to(Self::size_accomodating_idx(idx_of_chunk))
+    pub fn resize_chunks_to_accomodate(&mut self, idx_of_chunk: usize) {
+        self.resize_chunks_to(Self::size_accomodating_idx(idx_of_chunk))
     }
     pub fn insert(&mut self, bit_idx: usize) -> bool {
         let cba = ChunkBitAddr::from_bit_idx(bit_idx);
         if self.chunk_count <= cba.idx_of_chunk {
-            self.resize_to_accomodate(cba.idx_of_chunk)
+            self.resize_chunks_to_accomodate(cba.idx_of_chunk)
         }
         let chunk = unsafe {
             // certainly in bounds
@@ -156,7 +156,7 @@ impl<const N: usize> PackedIndexSet<N> {
             if let Some(read_chunk) = r.get_chunk(idx_of_chunk) {
                 if read_chunk != 0 {
                     if self.chunk_count <= idx_of_chunk {
-                        self.resize_to_accomodate(idx_of_chunk)
+                        self.resize_chunks_to_accomodate(idx_of_chunk)
                     }
                     let write_chunk = unsafe {
                         // certainly in bounds
@@ -208,6 +208,9 @@ impl<const N: usize> ChunkRead for PackedIndexSet<N> {
     fn get_chunk(&self, idx_of_chunk: usize) -> Option<Chunk> {
         self.as_chunks().get(idx_of_chunk).copied()
     }
+    fn no_chunks_from(&self) -> usize {
+        self.chunk_count
+    }
 }
 impl<const N: usize> Drop for PackedIndexSet<N> {
     fn drop(&mut self) {
@@ -224,7 +227,6 @@ impl<const N: usize> Drop for PackedIndexSet<N> {
                 std::alloc::dealloc(self.packed_chunk_storage.heap_chunks_ptr as *mut u8, layout)
             };
         }
-        // todo
     }
 }
 impl<const N: usize> FromIterator<Index> for PackedIndexSet<N> {
@@ -246,10 +248,16 @@ impl ChunkRead for Chunk {
             None
         }
     }
+    fn no_chunks_from(&self) -> usize {
+        1
+    }
 }
 
 impl ChunkRead for [Chunk] {
     fn get_chunk(&self, idx_of_chunk: usize) -> Option<usize> {
         self.get(idx_of_chunk).copied()
+    }
+    fn no_chunks_from(&self) -> usize {
+        self.len()
     }
 }

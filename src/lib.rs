@@ -4,10 +4,10 @@ pub use traits::ChunkRead;
 mod traits;
 
 mod index_set;
-pub use index_set::PackedIndexSet;
+pub use index_set::IndexSet;
 
 pub mod combinators;
-use combinators::{BinChunkOp, CombinedChunks};
+use combinators::{BinChunkOp, CombinedChunkReads};
 
 pub mod iterators;
 use iterators::{ChunkIter, IndexIter};

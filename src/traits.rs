@@ -17,8 +17,8 @@ pub trait ChunkRead {
             }
             at
     }
-    fn to_index_set<const N: usize>(&self) -> PackedIndexSet<N> {
-        let mut me = PackedIndexSet::<N>::with_chunk_capacity(self.zero_chunks_from_exact());
+    fn to_index_set<const N: usize>(&self) -> IndexSet<N> {
+        let mut me = IndexSet::<N>::with_chunk_capacity(self.zero_chunks_from_exact());
         for (index_of_chunk, write_chunk) in me.as_chunks_mut().iter_mut().enumerate() {
             if let Some(read_chunk) = self.get_chunk(index_of_chunk) {
                 *write_chunk = read_chunk;
@@ -107,19 +107,19 @@ pub trait ChunkRead {
         &'a self,
         op: O,
         b: &'a B,
-    ) -> CombinedChunks<Self, B, O> {
-        CombinedChunks { a: self, b, op }
+    ) -> CombinedChunkReads<Self, B, O> {
+        CombinedChunkReads { a: self, b, op }
     }
-    fn or<'a, B: ChunkRead>(&'a self, b: &'a B) -> CombinedChunks<Self, B, Or> {
+    fn or<'a, B: ChunkRead>(&'a self, b: &'a B) -> CombinedChunkReads<Self, B, Or> {
         self.combine_chunks(Or, b)
     }
-    fn xor<'a, B: ChunkRead>(&'a self, b: &'a B) -> CombinedChunks<Self, B, Xor> {
+    fn xor<'a, B: ChunkRead>(&'a self, b: &'a B) -> CombinedChunkReads<Self, B, Xor> {
         self.combine_chunks(Xor, b)
     }
-    fn and<'a, B: ChunkRead>(&'a self, b: &'a B) -> CombinedChunks<Self, B, And> {
+    fn and<'a, B: ChunkRead>(&'a self, b: &'a B) -> CombinedChunkReads<Self, B, And> {
         self.combine_chunks(And, b)
     }
-    fn diff<'a, B: ChunkRead>(&'a self, b: &'a B) -> CombinedChunks<Self, B, Diff> {
+    fn diff<'a, B: ChunkRead>(&'a self, b: &'a B) -> CombinedChunkReads<Self, B, Diff> {
         self.combine_chunks(Diff, b)
     }
 }

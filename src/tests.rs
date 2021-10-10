@@ -32,7 +32,7 @@ fn stream(seed: u64, bounds: Range<usize>) -> impl Iterator<Item = usize> {
 #[test]
 fn collect_count_and_iter_count() {
     for range in RANGES.iter().cloned() {
-        let w = PackedIndexSet::<2>::from_iter(stream(0, range));
+        let w = IndexSet::<2>::from_iter(stream(0, range));
         assert_eq!(w.count_indexes(), w.iter_indexes().count());
     }
 }
@@ -40,7 +40,7 @@ fn collect_count_and_iter_count() {
 #[test]
 fn chunks_hset_collect_count_eq() {
     for range in RANGES.iter().cloned() {
-        let w = PackedIndexSet::<2>::from_iter(stream(0, range.clone()));
+        let w = IndexSet::<2>::from_iter(stream(0, range.clone()));
         let h = HSet::from_iter(stream(0, range));
         assert_eq!(w.count_indexes(), h.len());
     }
@@ -49,7 +49,7 @@ fn chunks_hset_collect_count_eq() {
 #[test]
 fn chunks_covers_hset() {
     for range in RANGES.iter().cloned() {
-        let w = PackedIndexSet::<2>::from_iter(stream(0, range.clone()));
+        let w = IndexSet::<2>::from_iter(stream(0, range.clone()));
         let mut h = HSet::from_iter(stream(0, range));
         for i in w.iter_indexes() {
             assert!(h.remove(&i));
@@ -61,7 +61,7 @@ fn chunks_covers_hset() {
 #[test]
 fn hset_covers_chunks() {
     for range in RANGES.iter().cloned() {
-        let mut w = PackedIndexSet::<2>::from_iter(stream(0, range.clone()));
+        let mut w = IndexSet::<2>::from_iter(stream(0, range.clone()));
         let h = HSet::from_iter(stream(0, range));
         println!("{:?}\n{:?}", &w, &h);
         for &i in h.iter() {
@@ -75,8 +75,8 @@ fn hset_covers_chunks() {
 #[test]
 fn iter_and_collect_indices() {
     for range in RANGES.iter().cloned() {
-        let a = PackedIndexSet::<2>::from_iter(stream(0, range));
-        let b = PackedIndexSet::from_iter(a.iter_indexes());
+        let a = IndexSet::<2>::from_iter(stream(0, range));
+        let b = IndexSet::from_iter(a.iter_indexes());
         assert_eq!(a, b)
     }
 }
@@ -84,8 +84,8 @@ fn iter_and_collect_indices() {
 #[test]
 fn iter_and_collect_chunks() {
     for range in RANGES.iter().cloned() {
-        let a = PackedIndexSet::from_iter(stream(0, range));
-        let b = PackedIndexSet::<2>::from_chunks(a.iter_chunks());
+        let a = IndexSet::from_iter(stream(0, range));
+        let b = IndexSet::<2>::from_chunks(a.iter_chunks());
         assert_eq!(a, b)
     }
 }
@@ -93,8 +93,8 @@ fn iter_and_collect_chunks() {
 #[test]
 fn and_intersects() {
     for range in RANGES.iter().cloned() {
-        let a = PackedIndexSet::<2>::from_iter(stream(0, range.clone()));
-        let b = PackedIndexSet::<2>::from_iter(stream(1, range.clone()));
+        let a = IndexSet::<2>::from_iter(stream(0, range.clone()));
+        let b = IndexSet::<2>::from_iter(stream(1, range.clone()));
         let a_and_b = a.and(&b).to_index_set::<2>();
 
         for i in range {
@@ -106,8 +106,8 @@ fn and_intersects() {
 #[test]
 fn or_unions() {
     for range in RANGES.iter().cloned() {
-        let a = PackedIndexSet::<2>::from_iter(stream(0, range.clone()));
-        let b = PackedIndexSet::<2>::from_iter(stream(1, range.clone()));
+        let a = IndexSet::<2>::from_iter(stream(0, range.clone()));
+        let b = IndexSet::<2>::from_iter(stream(1, range.clone()));
 
         let a_or_b = a.or(&b).to_index_set::<2>();
 
@@ -120,8 +120,8 @@ fn or_unions() {
 #[test]
 fn xor_sym_diffs() {
     for range in RANGES.iter().cloned() {
-        let a = PackedIndexSet::<2>::from_iter(stream(0, range.clone()));
-        let b = PackedIndexSet::<2>::from_iter(stream(1, range.clone()));
+        let a = IndexSet::<2>::from_iter(stream(0, range.clone()));
+        let b = IndexSet::<2>::from_iter(stream(1, range.clone()));
 
         let a_xor_b = a.xor(&b).to_index_set::<2>();
 
@@ -134,8 +134,8 @@ fn xor_sym_diffs() {
 #[test]
 fn diff_diffs() {
     for range in RANGES.iter().cloned() {
-        let a = PackedIndexSet::<2>::from_iter(stream(0, range.clone()));
-        let b = PackedIndexSet::<2>::from_iter(stream(1, range.clone()));
+        let a = IndexSet::<2>::from_iter(stream(0, range.clone()));
+        let b = IndexSet::<2>::from_iter(stream(1, range.clone()));
 
         let a_diff_b = a.diff(&b).to_index_set::<2>();
 
@@ -147,14 +147,14 @@ fn diff_diffs() {
 
 #[test]
 fn stack_chunks() {
-    PackedIndexSet::<2>::default();
+    IndexSet::<2>::default();
 }
 
 #[test]
 fn combine_overwrite_is_ok() {
     for range in RANGES.iter().cloned() {
-        let a = PackedIndexSet::<2>::from_iter(stream(0, range.clone()));
-        let b = PackedIndexSet::<2>::from_iter(stream(1, range.clone()));
+        let a = IndexSet::<2>::from_iter(stream(0, range.clone()));
+        let b = IndexSet::<2>::from_iter(stream(1, range.clone()));
 
         let c = a.or(&b).to_index_set::<2>();
         let d = {

@@ -1,5 +1,5 @@
 [package]
-name = "index_set_rw"
+name = "chunked_index_set"
 version = "0.1.0"
 edition = "2018"
 

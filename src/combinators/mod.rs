@@ -25,13 +25,13 @@ pub trait BinChunkOp: Copy {
         self,
         a: &'a A,
         b: &'a B,
-    ) -> CombinedChunks<'a, A, B, Self> {
-        CombinedChunks { a, b, op: self }
+    ) -> CombinedChunkReads<'a, A, B, Self> {
+        CombinedChunkReads { a, b, op: self }
     }
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct CombinedChunks<'a, A: ChunkRead + ?Sized, B: ChunkRead + ?Sized, O: BinChunkOp> {
+pub struct CombinedChunkReads<'a, A: ChunkRead + ?Sized, B: ChunkRead + ?Sized, O: BinChunkOp> {
     pub a: &'a A,
     pub b: &'a B,
     pub op: O,
@@ -39,7 +39,7 @@ pub struct CombinedChunks<'a, A: ChunkRead + ?Sized, B: ChunkRead + ?Sized, O: B
 ///////////////////////////////
 
 impl<A: ChunkRead + ?Sized, B: ChunkRead + ?Sized, O: BinChunkOp> ChunkRead
-    for CombinedChunks<'_, A, B, O>
+    for CombinedChunkReads<'_, A, B, O>
 {
     fn get_chunk(&self, idx_of_chunk: usize) -> Option<Chunk> {
         self.op.combine_chunks(self.a.get_chunk(idx_of_chunk), self.b.get_chunk(idx_of_chunk))

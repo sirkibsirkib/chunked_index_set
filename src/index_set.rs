@@ -5,6 +5,7 @@ use crate::ChunkBitAddr;
 use crate::Index;
 use core::fmt::Debug;
 use core::iter::FromIterator;
+use core::ops::RangeTo;
 
 union PackedChunkStorage<const N: usize> {
     heap_chunks_ptr: *mut Chunk,
@@ -20,6 +21,13 @@ impl<const N: usize> PartialEq for IndexSet<N> {
         self.set_cmp(other) == Some(core::cmp::Ordering::Equal)
     }
 }
+
+/// Stores a set of indices in a contiguous array of bits packed into Chunks.
+/// If chunk_capacity() <= N, the array is kept on the stack, otherwise on the heap.
+///  
+/// Stores an array of Chunks of the heap, each storing usize::BITS contiguous indices
+/// IndexSets with <=N chunks store their data on the heap, otherwise they store it on the stack.
+///
 pub struct IndexSet<const N: usize> {
     // invariants:
     // N <= self.chunk_count
@@ -35,7 +43,7 @@ impl<const N: usize> Default for IndexSet<N> {
 }
 impl<const N: usize> Clone for IndexSet<N> {
     fn clone(&self) -> Self {
-        let mut new = Self::with_chunk_capacity(self.chunk_count);
+        let mut new = Self::with_chunk_capacity(self.zero_chunks_from_exact());
         for (src, dest) in self.as_chunks().iter().zip(new.as_chunks_mut().iter_mut()) {
             *dest = *src;
         }
@@ -43,8 +51,14 @@ impl<const N: usize> Clone for IndexSet<N> {
     }
 }
 impl<const N: usize> IndexSet<N> {
-    pub fn with_capacity(index_count: usize) -> Self {
+    pub fn capacity(&self) -> RangeTo<usize> {
+        ..(self.chunk_count * usize::BITS as usize)
+    }
+    pub fn with_min_capacity(index_count: usize) -> Self {
         Self::with_chunk_capacity(index_count_to_chunk_count(index_count))
+    }
+    pub fn chunk_capacity(&self) -> usize {
+        self.chunk_count
     }
     pub fn with_chunk_capacity(mut chunk_count: usize) -> Self {
         chunk_count = chunk_count.max(N);
@@ -104,13 +118,6 @@ impl<const N: usize> IndexSet<N> {
             };
             std::slice::from_raw_parts_mut(chunks_ptr, self.chunk_count)
         }
-    }
-    pub fn contains(&self, bit_idx: usize) -> bool {
-        let cba = ChunkBitAddr::from_bit_idx(bit_idx);
-        self.as_chunks()
-            .get(cba.idx_of_chunk)
-            .map(|chunk| *chunk & cba.chunk_mask() != 0)
-            .unwrap_or(false)
     }
     pub fn remove(&mut self, bit_idx: Index) -> bool {
         let cba = ChunkBitAddr::from_bit_idx(bit_idx);
@@ -188,20 +195,11 @@ impl<const N: usize> IndexSet<N> {
     }
     // does not change contents, but minimizes self.chunk_count
     pub fn shrink_to_fit(&mut self) {
-        let chunks = self.as_chunks();
-        for (idx_of_chunk, &chunk) in chunks.iter().enumerate().skip(N).rev() {
-            if chunk != 0 {
-                // largest chunk!
-                if idx_of_chunk + 1 == self.chunk_count {
-                    // don't bother
-                    return;
-                }
-                let mut new = Self::with_chunk_capacity(idx_of_chunk + 1);
-                for (src, dest) in chunks[0..idx_of_chunk + 1].iter().zip(new.as_chunks_mut()) {
-                    *dest = *src;
-                }
-                *self = new;
-                return;
+        let new_chunk_count = self.zero_chunks_from_exact();
+        if new_chunk_count < self.chunk_count {
+            let mut new = Self::with_chunk_capacity(new_chunk_count);
+            for (dest, src) in new.as_chunks_mut().iter_mut().zip(self.as_chunks().iter()) {
+                *dest = *src;
             }
         }
     }

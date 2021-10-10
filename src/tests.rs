@@ -98,7 +98,7 @@ fn and_intersects() {
         let a_and_b = a.and(&b).to_index_set::<2>();
 
         for i in range {
-            assert_eq!(a.contains_index(i) && b.contains_index(i), a_and_b.contains_index(i));
+            assert_eq!(a.contains(i) && b.contains(i), a_and_b.contains(i));
         }
     }
 }
@@ -112,7 +112,7 @@ fn or_unions() {
         let a_or_b = a.or(&b).to_index_set::<2>();
 
         for i in range {
-            assert_eq!(a.contains_index(i) || b.contains_index(i), a_or_b.contains_index(i));
+            assert_eq!(a.contains(i) || b.contains(i), a_or_b.contains(i));
         }
     }
 }
@@ -126,7 +126,7 @@ fn xor_sym_diffs() {
         let a_xor_b = a.xor(&b).to_index_set::<2>();
 
         for i in range {
-            assert_eq!(a.contains_index(i) ^ b.contains_index(i), a_xor_b.contains_index(i));
+            assert_eq!(a.contains(i) ^ b.contains(i), a_xor_b.contains(i));
         }
     }
 }
@@ -140,7 +140,7 @@ fn diff_diffs() {
         let a_diff_b = a.diff(&b).to_index_set::<2>();
 
         for i in range {
-            assert_eq!(a.contains_index(i) & !b.contains_index(i), a_diff_b.contains_index(i));
+            assert_eq!(a.contains(i) & !b.contains(i), a_diff_b.contains(i));
         }
     }
 }

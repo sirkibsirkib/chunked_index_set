@@ -96,7 +96,7 @@ pub trait ChunkRead {
             buf.push(chunk)
         }
     }
-    fn contains_index(&self, bit_idx: Index) -> bool {
+    fn contains(&self, bit_idx: Index) -> bool {
         let cba = ChunkBitAddr::from_bit_idx(bit_idx);
         match self.get_chunk(cba.idx_of_chunk) {
             None => false,

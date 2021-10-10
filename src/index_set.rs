@@ -82,9 +82,8 @@ impl<const N: usize> PackedIndexSet<N> {
         let mut me = Self::with_chunk_capacity(it.size_hint().0);
         for (idx_of_chunk, read_chunk) in it.enumerate() {
             if me.chunk_count <= idx_of_chunk {
-                me.grow_to_accomodate(idx_of_chunk)
+                me.resize_to_accomodate(idx_of_chunk)
             }
-
             let write_chunk = unsafe {
                 // certainly in bounds
                 me.as_chunks_mut().get_unchecked_mut(idx_of_chunk)
@@ -93,7 +92,7 @@ impl<const N: usize> PackedIndexSet<N> {
         }
         me
     }
-    fn as_chunks_mut(&mut self) -> &mut [Chunk] {
+    pub fn as_chunks_mut(&mut self) -> &mut [Chunk] {
         unsafe {
             let chunks_ptr: *mut Chunk = if self.chunk_count == N {
                 // stack!
@@ -123,23 +122,26 @@ impl<const N: usize> PackedIndexSet<N> {
             })
             .unwrap_or(false)
     }
-    fn grow_to_accomodate(&mut self, idx_of_new_chunk: usize) {
-        assert!(self.chunk_count <= idx_of_new_chunk);
-        let mut new = Self::with_chunk_capacity(
-            idx_of_new_chunk
-                .checked_add(1)
-                .and_then(usize::checked_next_power_of_two)
-                .expect("out of capacity!"),
-        );
+    fn size_accomodating_idx(idx_of_chunk: usize) -> usize {
+        idx_of_chunk
+            .checked_add(1)
+            .and_then(usize::checked_next_power_of_two)
+            .expect("Cannot accomodate that many chunks")
+    }
+    pub fn resize_to(&mut self, chunk_count: usize) {
+        let mut new = Self::with_chunk_capacity(chunk_count);
         for (src, dest) in self.as_chunks().iter().zip(new.as_chunks_mut()) {
             *dest = *src;
         }
         *self = new; // drops current
     }
+    pub fn resize_to_accomodate(&mut self, idx_of_chunk: usize) {
+        self.resize_to(Self::size_accomodating_idx(idx_of_chunk))
+    }
     pub fn insert(&mut self, bit_idx: usize) -> bool {
         let cba = ChunkBitAddr::from_bit_idx(bit_idx);
         if self.chunk_count <= cba.idx_of_chunk {
-            self.grow_to_accomodate(cba.idx_of_chunk);
+            self.resize_to_accomodate(cba.idx_of_chunk)
         }
         let chunk = unsafe {
             // certainly in bounds
@@ -154,7 +156,7 @@ impl<const N: usize> PackedIndexSet<N> {
             if let Some(read_chunk) = r.get_chunk(idx_of_chunk) {
                 if read_chunk != 0 {
                     if self.chunk_count <= idx_of_chunk {
-                        self.grow_to_accomodate(idx_of_chunk);
+                        self.resize_to_accomodate(idx_of_chunk)
                     }
                     let write_chunk = unsafe {
                         // certainly in bounds

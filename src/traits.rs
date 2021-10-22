@@ -88,13 +88,13 @@ pub trait ChunkRead {
     fn displayable(&self) -> DisplayableIndexSet<Self> {
         DisplayableIndexSet(self)
     }
-    fn iter_indexes(&self) -> IndexIter<Self> {
+    fn iter(&self) -> IndexIter<Self> {
         IndexIter::new(self)
     }
     fn iter_chunks(&self) -> ChunkIter<Self> {
         ChunkIter::new(self)
     }
-    fn count_indexes(&self) -> usize {
+    fn len(&self) -> usize {
         self.iter_chunks().map(|chunk: Chunk| chunk.count_ones() as usize).sum()
     }
     fn buffer_chunks_into(&self, buf: &mut Vec<Chunk>) {
@@ -115,6 +115,28 @@ pub trait ChunkRead {
         b: &'a B,
     ) -> CombinedChunkReads<Self, B, O> {
         CombinedChunkReads { a: self, b, op }
+    }
+    fn max_element(&self) -> Option<Index> {
+        for idx_of_chunk in (0..self.zero_chunks_from_exact()).rev() {
+            match self.get_chunk(idx_of_chunk) {
+                Some(chunk) if chunk != 0 =>  {
+                    let idx_in_chunk = usize::BITS - 1 - chunk.leading_zeros();
+                    return Some(ChunkBitAddr { idx_of_chunk, idx_in_chunk}.to_bit_idx())
+                }
+                _ => {}
+            }
+        }
+        None
+    }
+    fn min_element(&self) -> Option<Index> {
+        for idx_of_chunk in 0.. {
+            let chunk = self.get_chunk(idx_of_chunk)?;
+            if chunk != 0 {
+                let idx_in_chunk = chunk.trailing_zeros();
+                return Some(ChunkBitAddr { idx_of_chunk, idx_in_chunk}.to_bit_idx())
+            }
+        }
+        None
     }
     fn or<'a, B: ChunkRead>(&'a self, b: &'a B) -> CombinedChunkReads<Self, B, Or> {
         self.combine_chunks(Or, b)

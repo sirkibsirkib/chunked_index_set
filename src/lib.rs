@@ -35,7 +35,7 @@ fn index_count_to_chunk_count(index_count: usize) -> usize {
 }
 impl<A: ChunkRead> Display for DisplayableIndexSet<'_, A> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_set().entries(self.0.iter_indexes()).finish()
+        f.debug_set().entries(self.0.iter()).finish()
     }
 }
 impl ChunkBitAddr {

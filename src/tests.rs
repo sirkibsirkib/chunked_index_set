@@ -33,7 +33,7 @@ fn stream(seed: u64, bounds: Range<usize>) -> impl Iterator<Item = usize> {
 fn collect_count_and_iter_count() {
     for range in RANGES.iter().cloned() {
         let w = IndexSet::<2>::from_iter(stream(0, range));
-        assert_eq!(w.count_indexes(), w.iter_indexes().count());
+        assert_eq!(w.len(), w.iter().count());
     }
 }
 
@@ -42,7 +42,7 @@ fn chunks_hset_collect_count_eq() {
     for range in RANGES.iter().cloned() {
         let w = IndexSet::<2>::from_iter(stream(0, range.clone()));
         let h = HSet::from_iter(stream(0, range));
-        assert_eq!(w.count_indexes(), h.len());
+        assert_eq!(w.len(), h.len());
     }
 }
 
@@ -51,7 +51,7 @@ fn chunks_covers_hset() {
     for range in RANGES.iter().cloned() {
         let w = IndexSet::<2>::from_iter(stream(0, range.clone()));
         let mut h = HSet::from_iter(stream(0, range));
-        for i in w.iter_indexes() {
+        for i in w.iter() {
             assert!(h.remove(&i));
         }
         assert!(h.is_empty());
@@ -76,7 +76,7 @@ fn hset_covers_chunks() {
 fn iter_and_collect_indices() {
     for range in RANGES.iter().cloned() {
         let a = IndexSet::<2>::from_iter(stream(0, range));
-        let b = IndexSet::from_iter(a.iter_indexes());
+        let b = IndexSet::from_iter(a.iter());
         assert_eq!(a, b)
     }
 }
@@ -171,4 +171,16 @@ fn from_chunk_slice() {
     let a = IndexSet::<2>::from_chunk_slice(&[0b11000]);
     let b: IndexSet<2> = [4, 3, 3].iter().copied().collect();
     assert_eq!(a, b);
+}
+
+#[test]
+fn largest() {
+    let set = IndexSet::<2>::from_iter([1, 2, 19, 91, 93].iter().copied());
+    assert_eq!(set.max_element(), Some(93));
+}
+
+#[test]
+fn smallest() {
+    let set = IndexSet::<2>::from_iter([19, 91, 93].iter().copied());
+    assert_eq!(set.min_element(), Some(19));
 }

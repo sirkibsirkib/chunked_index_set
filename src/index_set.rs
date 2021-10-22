@@ -13,7 +13,7 @@ union PackedChunkStorage<const N: usize> {
 }
 impl<const N: usize> Debug for IndexSet<N> {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        f.debug_set().entries(self.iter_indexes()).finish()
+        f.debug_set().entries(self.iter()).finish()
     }
 }
 impl<const N: usize> PartialEq for IndexSet<N> {

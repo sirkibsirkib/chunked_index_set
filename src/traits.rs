@@ -38,14 +38,14 @@ pub trait ChunkRead {
         use core::cmp::Ordering::*;
         match self.set_cmp(other) {
             Some(Equal | Less) => true,
-            Some(Greater) | None => true,
+            Some(Greater) | None => false,
         }
     }
     fn is_superset_of<A: ChunkRead>(&self, other: &A) -> bool {
         use core::cmp::Ordering::*;
         match self.set_cmp(other) {
             Some(Equal | Greater) => true,
-            Some(Less) | None => true,
+            Some(Less) | None => false,
         }
     }
     fn is_disjoint_with<A: ChunkRead>(&self, other: &A) -> bool {
@@ -147,7 +147,7 @@ pub trait ChunkRead {
     fn and<'a, B: ChunkRead>(&'a self, b: &'a B) -> CombinedChunkReads<Self, B, And> {
         self.combine_chunks(And, b)
     }
-    fn diff<'a, B: ChunkRead>(&'a self, b: &'a B) -> CombinedChunkReads<Self, B, Diff> {
-        self.combine_chunks(Diff, b)
+    fn without<'a, B: ChunkRead>(&'a self, b: &'a B) -> CombinedChunkReads<Self, B, Without> {
+        self.combine_chunks(Without, b)
     }
 }

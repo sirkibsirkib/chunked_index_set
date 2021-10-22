@@ -137,7 +137,7 @@ fn diff_diffs() {
         let a = IndexSet::<2>::from_iter(stream(0, range.clone()));
         let b = IndexSet::<2>::from_iter(stream(1, range.clone()));
 
-        let a_diff_b = a.diff(&b).to_index_set::<2>();
+        let a_diff_b = a.without(&b).to_index_set::<2>();
 
         for i in range {
             assert_eq!(a.contains(i) & !b.contains(i), a_diff_b.contains(i));

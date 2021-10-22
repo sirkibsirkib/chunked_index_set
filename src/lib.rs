@@ -15,6 +15,17 @@ use iterators::{ChunkIter, IndexIter};
 #[cfg(test)]
 mod tests;
 
+#[macro_export]
+macro_rules! index_set {
+    ($($elem:expr),*) => {{
+        let mut m = IndexSet::default();
+        $(
+            m.insert($elem);
+        )*
+        m
+    }};
+}
+
 /////////////////////////////////////////////
 
 pub type Chunk = usize; // stores up to usize::BITS Indexes

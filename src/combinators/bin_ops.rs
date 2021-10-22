@@ -7,7 +7,7 @@ pub struct Xor;
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub struct And;
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub struct Diff;
+pub struct Without;
 
 //////////
 
@@ -51,7 +51,7 @@ impl BinChunkOp for And {
         ncfa.min(ncfb)
     }
 }
-impl BinChunkOp for Diff {
+impl BinChunkOp for Without {
     fn combine_chunks(self, a: Option<Chunk>, b: Option<Chunk>) -> Option<Chunk> {
         if let Some(a) = a {
             Some(a & !(z(b)))

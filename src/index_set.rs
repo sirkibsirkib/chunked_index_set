@@ -108,9 +108,7 @@ impl<const N: usize> IndexSet<N> {
     /// Creates an IndexSet from a sequence of contiguous chunks.
     /// Result has a chunk capacity equivalent to the length of the slice.
     pub fn from_chunk_slice(chunks: &[Chunk]) -> Self {
-        let mut me = Self::with_chunk_capacity(chunks.len());
-        Self::add_all::<[Chunk]>(&mut me, chunks);
-        me
+        Self::from_chunk_iter(chunks.iter().copied())
     }
     /// Returns an immutable slice of the stored Chunks
     pub fn as_chunks(&self) -> &[Chunk] {
@@ -181,7 +179,7 @@ impl<const N: usize> IndexSet<N> {
         was_unset
     }
     /// Equivalent to for i in r.iter_indexes() { self.insert(i); }
-    pub fn add_all<R: ChunkRead + ?Sized>(&mut self, r: &R) {
+    pub fn insert_all<R: ChunkRead + ?Sized>(&mut self, r: &R) {
         for idx_of_chunk in 0.. {
             if let Some(read_chunk) = r.get_chunk(idx_of_chunk) {
                 if read_chunk != 0 {

@@ -51,6 +51,27 @@ impl<const N: usize> Clone for IndexSet<N> {
     }
 }
 impl<const N: usize> IndexSet<N> {
+    /// If possible, replaces this set with the previous in the powerset order.
+    /// This is an ordering on sets of positive integers as follows: {}, {0}, {1}, {0,1}, {2}, {0,2}, {1,2}, ...
+    pub fn try_decrease_in_powerset_order(&mut self) -> bool {
+        if self.is_empty() {
+            // chunks are [0,0,0, ... ,0]
+            false
+        } else {
+            let chunks = self.as_chunks_mut();
+            for chunk in chunks.iter_mut() {
+                let (new_chunk, underflowed) = chunk.overflowing_sub(1);
+                *chunk = new_chunk;
+                if !underflowed {
+                    // ok we didn't underflow. done here
+                    return true;
+                }
+            }
+            // only in the case of chunks [0,0,0, ... ,0] would we underflow all the way!
+            unreachable!()
+        }
+    }
+
     /// Returns the IndexSet's index capacity.
     pub fn capacity(&self) -> RangeTo<usize> {
         ..(self.chunk_count * usize::BITS as usize)

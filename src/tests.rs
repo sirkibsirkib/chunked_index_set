@@ -175,12 +175,23 @@ fn from_chunk_slice() {
 
 #[test]
 fn largest() {
-    let set = IndexSet::<2>::from_iter([1, 2, 19, 91, 93].iter().copied());
+    let set = IndexSet::<2>::from_iter([1, 2, 19, 91, 93]);
     assert_eq!(set.max_element(), Some(93));
 }
 
 #[test]
 fn smallest() {
-    let set = IndexSet::<2>::from_iter([19, 91, 93].iter().copied());
+    let set = IndexSet::<2>::from_iter([19, 91, 93]);
     assert_eq!(set.min_element(), Some(19));
+}
+
+#[test]
+fn powerset_order() {
+    let mut set = IndexSet::<3>::from_iter([1, 3, 4]);
+    loop {
+        println!("{:?}", &set);
+        if !set.try_decrease_in_powerset_order() {
+            break;
+        }
+    }
 }

@@ -195,3 +195,20 @@ fn powerset_order() {
         }
     }
 }
+
+#[test]
+fn insert_all_in_range() {
+    let rng = fastrand::Rng::with_seed(31644);
+    let mut stream = std::iter::repeat_with(|| rng.usize(0..400));
+    let mut set = IndexSet::<17>::default();
+    for _tests in 0..300 {
+        let start = stream.next().unwrap();
+        let range = start..start + stream.next().unwrap();
+        set.insert_all_in_range(range.clone());
+        assert_eq!(set.len(), range.len());
+        for i in range {
+            assert!(set.contains(i));
+        }
+        set.clear();
+    }
+}

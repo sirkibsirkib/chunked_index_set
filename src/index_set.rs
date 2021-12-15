@@ -5,7 +5,7 @@ use crate::ChunkBitAddr;
 use crate::Index;
 use core::fmt::Debug;
 use core::iter::FromIterator;
-use core::ops::RangeTo;
+use core::ops::{Range, RangeTo};
 
 union PackedChunkStorage<const N: usize> {
     heap_chunks_ptr: *mut Chunk,
@@ -21,6 +21,12 @@ impl<const N: usize> PartialEq for IndexSet<N> {
         self.set_cmp(other) == Some(core::cmp::Ordering::Equal)
     }
 }
+
+// pub struct IndexSubsetIter<const N: usize> {
+//     // already_returned_buffered is initially FALSE. then becomes and stays true
+//     buffered: IndexSet<N>,
+//     already_returned_buffered: bool,
+// }
 
 /// Stores a set of indices in a contiguous array of bits packed into Chunks.
 /// If chunk_capacity() <= N, the array is kept on the stack, otherwise on the heap.
@@ -51,6 +57,40 @@ impl<const N: usize> Clone for IndexSet<N> {
     }
 }
 impl<const N: usize> IndexSet<N> {
+    pub fn insert_all_in_range(&mut self, mut range: Range<usize>) {
+        range.start = range.start.min(range.end);
+        if range.is_empty() {
+            return;
+        }
+        const B: usize = usize::BITS as usize;
+        let first_chunk: Chunk = (!0) << range.start % B;
+        let first_chunk_at = range.start as usize / B;
+        let mut last_chunk: Chunk = !((!0) << range.end % B);
+        let mut last_chunk_at = range.end as usize / B;
+        if last_chunk == 0 {
+            last_chunk_at -= 1;
+            last_chunk = !0;
+        }
+        if self.chunk_count <= last_chunk_at {
+            self.resize_chunks_to_accomodate(last_chunk_at);
+        }
+        let chunks = self.as_chunks_mut();
+        if first_chunk_at == last_chunk_at {
+            let only_chunk = first_chunk & last_chunk;
+            chunks[first_chunk_at] |= only_chunk;
+        } else {
+            chunks[first_chunk_at] |= first_chunk;
+            if first_chunk_at + 1 < last_chunk_at {
+                for chunk in chunks[(first_chunk_at + 1)..last_chunk_at].iter_mut() {
+                    *chunk = !0;
+                }
+            }
+            chunks[last_chunk_at] |= last_chunk;
+        }
+    }
+    // pub fn to_subset_iter(self) -> IndexSubsetIter<N> {
+    //     IndexSubsetIter { buffered: self, already_returned_buffered: false }
+    // }
     /// If possible, replaces this set with the previous in the powerset order.
     /// This is an ordering on sets of positive integers as follows: {}, {0}, {1}, {0,1}, {2}, {0,2}, {1,2}, ...
     pub fn try_decrease_in_powerset_order(&mut self) -> bool {
@@ -264,6 +304,18 @@ impl<const N: usize> IndexSet<N> {
         }
     }
 }
+// impl<const N: usize> IndexSubsetIter<N> {
+//     pub fn next_subset(&mut self) -> Option<&IndexSet<N>> {
+//         if self.already_returned_buffered {
+//             if !self.buffered.try_decrease_in_powerset_order() {
+//                 return None;
+//             }
+//         } else {
+//             self.already_returned_buffered = true;
+//         }
+//         Some(&self.buffered)
+//     }
+// }
 impl<const N: usize> ChunkRead for IndexSet<N> {
     fn get_chunk(&self, idx_of_chunk: usize) -> Option<Chunk> {
         self.as_chunks().get(idx_of_chunk).copied()

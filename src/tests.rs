@@ -199,15 +199,35 @@ fn powerset_order() {
 #[test]
 fn insert_all_in_range() {
     let rng = fastrand::Rng::with_seed(31644);
-    let mut stream = std::iter::repeat_with(|| rng.usize(0..400));
+    const N: usize = 242;
+    const TESTS: usize = 2_000;
+    let mut stream = std::iter::repeat_with(|| rng.usize(0..N)..rng.usize(N..N * 2));
     let mut set = IndexSet::<17>::default();
-    for _tests in 0..300 {
-        let start = stream.next().unwrap();
-        let range = start..start + stream.next().unwrap();
+    for _tests in 0..TESTS {
+        let range = stream.next().unwrap();
         set.insert_all_in_range(range.clone());
         assert_eq!(set.len(), range.len());
         for i in range {
             assert!(set.contains(i));
+        }
+        set.clear();
+    }
+}
+
+#[test]
+fn insert_then_remove_all_in_range() {
+    let rng = fastrand::Rng::with_seed(364);
+    const N: usize = 242;
+    const TESTS: usize = 2_000;
+    let mut stream = std::iter::repeat_with(|| rng.usize(0..N)..rng.usize(N..N * 2));
+    let mut set = IndexSet::<17>::default();
+    for _tests in 0..TESTS {
+        set.insert_all_in_range(0..N * 2);
+        let remove_range = stream.next().unwrap();
+        set.remove_all_in_range(remove_range.clone());
+        assert_eq!(set.len(), N * 2 - remove_range.len());
+        for i in remove_range {
+            assert!(!set.contains(i));
         }
         set.clear();
     }

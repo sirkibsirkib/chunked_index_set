@@ -88,9 +88,42 @@ impl<const N: usize> IndexSet<N> {
             chunks[last_chunk_at] |= last_chunk;
         }
     }
-    // pub fn to_subset_iter(self) -> IndexSubsetIter<N> {
-    //     IndexSubsetIter { buffered: self, already_returned_buffered: false }
-    // }
+    pub fn remove_all_in_range(&mut self, mut range: Range<usize>) {
+        range.start = range.start.min(range.end);
+        if range.is_empty() {
+            return;
+        }
+        const B: usize = usize::BITS as usize;
+        // these chunks are all negated!
+        let first_chunk: Chunk = (!0) << range.start % B;
+        let first_chunk_at = range.start as usize / B;
+        let chunks = self.as_chunks_mut();
+        if chunks.len() <= first_chunk_at {
+            // nothing to do here!
+            return;
+        }
+        let mut last_chunk: Chunk = !((!0) << range.end % B);
+        let mut last_chunk_at = range.end as usize / B;
+        if last_chunk == 0 {
+            last_chunk_at -= 1;
+            last_chunk = !0;
+        }
+        if first_chunk_at == last_chunk_at {
+            let only_chunk = first_chunk & last_chunk;
+            chunks[first_chunk_at] &= !only_chunk;
+        } else {
+            chunks[first_chunk_at] &= !first_chunk;
+            if first_chunk_at + 1 < last_chunk_at {
+                let end = last_chunk_at.min(chunks.len());
+                for chunk in chunks[(first_chunk_at + 1)..end].iter_mut() {
+                    *chunk = 0;
+                }
+            }
+            if let Some(chunk) = chunks.get_mut(last_chunk_at) {
+                *chunk &= !last_chunk;
+            }
+        }
+    }
     /// If possible, replaces this set with the previous in the powerset order.
     /// This is an ordering on sets of positive integers as follows: {}, {0}, {1}, {0,1}, {2}, {0,2}, {1,2}, ...
     pub fn try_decrease_in_powerset_order(&mut self) -> bool {

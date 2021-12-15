@@ -63,11 +63,11 @@ fn hset_covers_chunks() {
     for range in RANGES.iter().cloned() {
         let mut w = IndexSet::<2>::from_iter(stream(0, range.clone()));
         let h = HSet::from_iter(stream(0, range));
-        println!("{:?}\n{:?}", &w, &h);
+        // println!("{:?}\n{:?}", &w, &h);
         for &i in h.iter() {
             assert!(w.remove(i));
         }
-        println!("w {:?}", &w);
+        // println!("w {:?}", &w);
         assert!(w.is_empty());
     }
 }
@@ -187,13 +187,11 @@ fn smallest() {
 
 #[test]
 fn powerset_order() {
-    let mut set = IndexSet::<3>::from_iter([1, 3, 4]);
-    loop {
-        println!("{:?}", &set);
-        if !set.try_decrease_in_powerset_order() {
-            break;
-        }
-    }
+    let chunk: Chunk = 0b11010;
+    let mut set = IndexSet::<3>::from_chunk_slice(&[chunk]);
+    let count =
+        std::iter::repeat_with(|| set.try_decrease_in_powerset_order()).take_while(|&x| x).count();
+    assert_eq!(count, 0b11010);
 }
 
 #[test]

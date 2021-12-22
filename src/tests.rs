@@ -232,7 +232,7 @@ fn insert_then_remove_all_in_range() {
 }
 
 #[test]
-fn chunk_list_ord() {
+fn chunk_list_cmp() {
     let rng = fastrand::Rng::with_seed(8985);
     const TESTS: usize = 2_000;
 
@@ -249,7 +249,7 @@ fn chunk_list_ord() {
 
         // test ordering
         use core::cmp::Ordering::Equal;
-        assert_eq!(a.chunk_list_ord(&b) == Equal, a.set_cmp(&b) == Some(Equal));
+        assert_eq!(a.chunk_list_cmp(&b) == Equal, a.set_cmp(&b) == Some(Equal));
 
         // clear
         a.clear();

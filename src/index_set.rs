@@ -252,6 +252,16 @@ impl<const N: usize> IndexSet<N> {
             .and_then(usize::checked_next_power_of_two)
             .expect("Cannot accomodate that many chunks")
     }
+
+    /// Afterwards, contains will return the given value. Returns true iff a change occurred.
+    pub fn make_contains(&mut self, index: Index, value: bool) -> bool {
+        if value {
+            self.insert(index)
+        } else {
+            self.remove(index)
+        }
+    }
+
     /// Resizes the chunk storage, trucating chunks if chunk_count < self.chunk_count().
     /// Afterwards, has the same chunks as before in [0..chunk_count] and self.chunk_count() == chunk_count.
     pub fn resize_chunks_to(&mut self, chunk_count: usize) {

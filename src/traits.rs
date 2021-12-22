@@ -50,7 +50,7 @@ pub trait ChunkRead {
     fn is_disjoint_with<A: ChunkRead>(&self, other: &A) -> bool {
         self.combine_chunks(And, other).is_empty()
     }
-    fn chunk_list_ord<A: ChunkRead>(&self, other: &A) -> core::cmp::Ordering {
+    fn chunk_list_cmp<A: ChunkRead>(&self, other: &A) -> core::cmp::Ordering {
         use core::cmp::Ordering::*;
         let chunks_iter = self.iter_chunks().chain(std::iter::repeat(0)).zip(other.iter_chunks());
         chunks_iter.map(|(a, b)| a.cmp(&b)).filter(|&ord| ord != Equal).next().unwrap_or(Equal)

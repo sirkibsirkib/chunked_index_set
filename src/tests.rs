@@ -230,3 +230,29 @@ fn insert_then_remove_all_in_range() {
         set.clear();
     }
 }
+
+#[test]
+fn chunk_list_ord() {
+    let rng = fastrand::Rng::with_seed(8985);
+    const TESTS: usize = 2_000;
+
+    let mut a = IndexSet::<1>::default();
+    let mut b = IndexSet::<3>::default();
+
+    for _ in 0..TESTS {
+        // populate
+        const N: usize = 4;
+        for _ in 0..N {
+            a.insert(rng.usize(0..8));
+            b.insert(rng.usize(0..8));
+        }
+
+        // test ordering
+        use core::cmp::Ordering::Equal;
+        assert_eq!(a.chunk_list_ord(&b) == Equal, a.set_cmp(&b) == Some(Equal));
+
+        // clear
+        a.clear();
+        b.clear();
+    }
+}

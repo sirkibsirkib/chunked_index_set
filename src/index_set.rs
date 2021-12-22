@@ -21,6 +21,12 @@ impl<const N: usize> PartialEq for IndexSet<N> {
         self.set_cmp(other) == Some(core::cmp::Ordering::Equal)
     }
 }
+impl<const N: usize> Eq for IndexSet<N> {}
+impl<const N: usize> core::hash::Hash for IndexSet<N> {
+    fn hash<H: core::hash::Hasher>(&self, hasher: &mut H) {
+        self.as_chunks().hash(hasher)
+    }
+}
 
 // pub struct IndexSubsetIter<const N: usize> {
 //     // already_returned_buffered is initially FALSE. then becomes and stays true
@@ -34,6 +40,7 @@ impl<const N: usize> PartialEq for IndexSet<N> {
 /// Stores an array of Chunks of the heap, each storing usize::BITS contiguous indices
 /// IndexSets with <=N chunks store their data on the heap, otherwise they store it on the stack.
 ///
+
 pub struct IndexSet<const N: usize> {
     // invariants:
     // N <= self.chunk_count

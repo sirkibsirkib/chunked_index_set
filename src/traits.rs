@@ -13,15 +13,14 @@ pub trait ChunkRead {
     fn zero_chunks_from_conservative(&self) -> usize;
     ///////
     fn zero_chunks_from_exact(&self) -> usize {
-
-            // scan from back to front looking for 1st nonzero chunk
-            let mut at = self.zero_chunks_from_conservative();
-            // at points to SOME nonzero chunk. Is there another before it?
-            while at > 0 && self.get_chunk(at-1).unwrap_or(0) == 0 {
-                // yep. there's another one at at-1
-                at -= 1;
-            }
-            at
+        // scan from back to front looking for 1st nonzero chunk
+        let mut at = self.zero_chunks_from_conservative();
+        // at points to SOME nonzero chunk. Is there another before it?
+        while at > 0 && self.get_chunk(at - 1).unwrap_or(0) == 0 {
+            // yep. there's another one at at-1
+            at -= 1;
+        }
+        at
     }
     fn to_index_set<const N: usize>(&self) -> IndexSet<N> {
         let mut me = IndexSet::<N>::with_chunk_capacity(self.zero_chunks_from_exact());
@@ -29,7 +28,7 @@ pub trait ChunkRead {
             if let Some(read_chunk) = self.get_chunk(index_of_chunk) {
                 *write_chunk = read_chunk;
             } else {
-                break
+                break;
             }
         }
         me
@@ -50,6 +49,11 @@ pub trait ChunkRead {
     }
     fn is_disjoint_with<A: ChunkRead>(&self, other: &A) -> bool {
         self.combine_chunks(And, other).is_empty()
+    }
+    fn chunk_list_ord<A: ChunkRead>(&self, other: &A) -> core::cmp::Ordering {
+        use core::cmp::Ordering::*;
+        let chunks_iter = self.iter_chunks().chain(std::iter::repeat(0)).zip(other.iter_chunks());
+        chunks_iter.map(|(a, b)| a.cmp(&b)).filter(|&ord| ord != Equal).next().unwrap_or(Equal)
     }
     fn set_cmp<A: ChunkRead>(&self, other: &A) -> Option<core::cmp::Ordering> {
         let mut ord = core::cmp::Ordering::Equal;
@@ -119,9 +123,9 @@ pub trait ChunkRead {
     fn max_element(&self) -> Option<Index> {
         for idx_of_chunk in (0..self.zero_chunks_from_exact()).rev() {
             match self.get_chunk(idx_of_chunk) {
-                Some(chunk) if chunk != 0 =>  {
+                Some(chunk) if chunk != 0 => {
                     let idx_in_chunk = usize::BITS - 1 - chunk.leading_zeros();
-                    return Some(ChunkBitAddr { idx_of_chunk, idx_in_chunk}.to_bit_idx())
+                    return Some(ChunkBitAddr { idx_of_chunk, idx_in_chunk }.to_bit_idx());
                 }
                 _ => {}
             }
@@ -133,7 +137,7 @@ pub trait ChunkRead {
             let chunk = self.get_chunk(idx_of_chunk)?;
             if chunk != 0 {
                 let idx_in_chunk = chunk.trailing_zeros();
-                return Some(ChunkBitAddr { idx_of_chunk, idx_in_chunk}.to_bit_idx())
+                return Some(ChunkBitAddr { idx_of_chunk, idx_in_chunk }.to_bit_idx());
             }
         }
         None
